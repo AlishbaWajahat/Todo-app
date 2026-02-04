@@ -4,6 +4,109 @@ This file is generated during init for the selected agent.
 
 You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
 
+## Project Overview
+
+**Project Name:** Phase II: Todo Full-Stack Web Application
+
+**Objective:** Transform a console app into a modern multi-user web application with persistent storage using Claude Code and Spec-Kit Plus.
+
+**Development Approach:** Agentic Dev Stack workflow
+- Write spec → Generate plan → Break into tasks → Implement via Claude Code
+- No manual coding allowed
+- All development must go through the spec-driven process
+
+**Requirements:**
+- Implement all 5 Basic Level features as a web application
+- Create RESTful API endpoints
+- Build responsive frontend interface
+- Store data in Neon Serverless PostgreSQL database
+- Implement user signup/signin using Better Auth
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 16+ (App Router) |
+| Backend | Python FastAPI |
+| ORM | SQLModel |
+| Database | Neon Serverless PostgreSQL |
+| Spec-Driven | Claude Code + Spec-Kit Plus |
+| Authentication | Better Auth (JWT-based) |
+
+## Authentication Architecture
+
+**Better Auth with JWT Tokens:**
+
+Better Auth is configured to issue JWT (JSON Web Token) tokens when users log in. These tokens are self-contained credentials that include user information and can be verified by any service that knows the secret key.
+
+**Authentication Flow:**
+1. User logs in on Frontend → Better Auth creates a session and issues a JWT token
+2. Frontend makes API call → Includes the JWT token in `Authorization: Bearer <token>` header
+3. Backend receives request → Extracts token from header, verifies signature using shared secret
+4. Backend identifies user → Decodes token to get user ID, email, etc. and matches it with the user ID in the URL
+5. Backend filters data → Returns only tasks belonging to that user
+
+## Agent Usage Guidelines
+
+**IMPORTANT:** Use specialized agents for different aspects of the application. Each agent has specific expertise and required skills.
+
+### When to Use Each Agent:
+
+**1. Auth Agent (auth-security-auditor)**
+- Use for: All authentication and authorization implementations
+- Required Skill: **Auth Skill**
+- Scenarios:
+  - Implementing Better Auth integration
+  - Setting up JWT token verification in FastAPI
+  - Creating signup/signin endpoints
+  - Implementing protected routes and middleware
+  - Reviewing authentication security
+  - Handling user sessions and token management
+
+**2. Frontend Agent (frontend-agent)**
+- Use for: All Next.js and UI development
+- Required Skill: **Frontend Skill**
+- Tech Stack: Next.js 16+ (App Router) + Tailwind CSS + TypeScript
+- Scenarios:
+  - Building pages and UI components
+  - Implementing App Router patterns (layouts, loading, error handling)
+  - Creating responsive designs with Tailwind CSS
+  - Handling client-side state and interactivity
+  - Implementing forms and validation
+  - Integrating with backend APIs
+
+**3. Database Agent (database-agent)**
+- Use for: All database design and operations
+- Required Skill: **Database Skill**
+- Tech Stack: Neon Serverless PostgreSQL + SQLModel
+- Scenarios:
+  - Designing database schemas and tables
+  - Writing SQL queries and optimizations
+  - Implementing database migrations
+  - Setting up connection pooling for serverless
+  - Optimizing for Neon's architecture (branching, auto-scaling)
+  - Ensuring data integrity with constraints
+
+**4. Backend Agent (fastapi-backend-agent)**
+- Use for: All FastAPI backend development
+- Required Skill: **Backend Skill**
+- Tech Stack: Python FastAPI + SQLModel
+- Scenarios:
+  - Creating RESTful API endpoints
+  - Implementing request/response validation with Pydantic
+  - Integrating database operations with SQLModel
+  - Structuring API routes and dependencies
+  - Implementing error handling and logging
+  - Optimizing API performance
+
+### Multi-Agent Coordination:
+
+For features that span multiple layers, coordinate agents in this order:
+1. **Database Agent** → Design schema and tables
+2. **Backend Agent** → Create API endpoints with database integration
+3. **Auth Agent** → Add authentication/authorization to endpoints
+4. **Frontend Agent** → Build UI that consumes the APIs
+
 ## Task context
 
 **Your Surface:** You operate on a project level, providing guidance to users and executing development tasks via a defined set of tools.
@@ -208,3 +311,12 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Python 3.11+ + FastAPI, SQLModel, Uvicorn (ASGI server), psycopg2-binary, python-dotenv, python-jose (for future JWT) (001-backend-task-api)
+- Neon Serverless PostgreSQL (cloud-hosted) (001-backend-task-api)
+- Python 3.11+ + FastAPI, SQLModel, python-jose[cryptography], psycopg2-binary, python-dotenv (002-backend-jwt-auth)
+- Neon Serverless PostgreSQL with connection pooling (002-backend-jwt-auth)
+
+## Recent Changes
+- 001-backend-task-api: Added Python 3.11+ + FastAPI, SQLModel, Uvicorn (ASGI server), psycopg2-binary, python-dotenv, python-jose (for future JWT)

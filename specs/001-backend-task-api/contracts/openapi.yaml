@@ -1,0 +1,505 @@
+openapi: 3.0.3
+info:
+  title: Task Management API
+  description: |
+    RESTful API for managing tasks with persistent storage in Neon PostgreSQL.
+
+    This API provides CRUD operations for tasks including create, read, update, delete, and completion tracking.
+    Each task is associated with a user_id for future authentication integration.
+
+    **Current Phase**: Authentication is NOT enforced. All endpoints are publicly accessible.
+
+    **Future Phase**: JWT authentication will be added to verify user_id and filter tasks by authenticated user.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.example.com
+    description: Production server (future)
+
+tags:
+  - name: tasks
+    description: Task management operations
+
+paths:
+  /api/v1/tasks:
+    get:
+      tags:
+        - tasks
+      summary: List all tasks
+      description: Retrieve a list of all tasks in the system. Returns all tasks regardless of user_id (no filtering in this phase).
+      operationId: listTasks
+      responses:
+        '200':
+          description: Successful response with array of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskResponse'
+              example:
+                - id: 1
+                  title: "Complete project documentation"
+                  description: "Write comprehensive API documentation"
+                  completed: false
+                  user_id: 1
+                  created_at: "2026-02-03T10:00:00Z"
+                  updated_at: "2026-02-03T10:00:00Z"
+                - id: 2
+                  title: "Review pull requests"
+                  description: null
+                  completed: true
+                  user_id: 1
+                  created_at: "2026-02-03T09:30:00Z"
+                  updated_at: "2026-02-03T14:15:00Z"
+        '500':
+          description: Server error (e.g., database connection failure)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Database connection failed"
+                code: "DATABASE_ERROR"
+
+    post:
+      tags:
+        - tasks
+      summary: Create a new task
+      description: Create a new task with the provided data. Returns the created task with auto-generated id and timestamps.
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+            example:
+              title: "Complete project documentation"
+              description: "Write comprehensive API documentation"
+              completed: false
+              user_id: 1
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              example:
+                id: 1
+                title: "Complete project documentation"
+                description: "Write comprehensive API documentation"
+                completed: false
+                user_id: 1
+                created_at: "2026-02-03T10:00:00Z"
+                updated_at: "2026-02-03T10:00:00Z"
+        '400':
+          description: Validation error (missing or invalid fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                detail: "Validation error"
+                code: "VALIDATION_ERROR"
+                errors:
+                  - field: "title"
+                    message: "Field required"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tasks/{task_id}:
+    get:
+      tags:
+        - tasks
+      summary: Get a task by ID
+      description: Retrieve a specific task by its ID.
+      operationId: getTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task to retrieve
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        '200':
+          description: Successful response with task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              example:
+                id: 1
+                title: "Complete project documentation"
+                description: "Write comprehensive API documentation"
+                completed: false
+                user_id: 1
+                created_at: "2026-02-03T10:00:00Z"
+                updated_at: "2026-02-03T10:00:00Z"
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+                code: "TASK_NOT_FOUND"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - tasks
+      summary: Update a task (full update)
+      description: Update all fields of an existing task. All fields must be provided.
+      operationId: updateTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task to update
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+            example:
+              title: "Complete project documentation (updated)"
+              description: "Write comprehensive API documentation with examples"
+              completed: true
+              user_id: 1
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              example:
+                id: 1
+                title: "Complete project documentation (updated)"
+                description: "Write comprehensive API documentation with examples"
+                completed: true
+                user_id: 1
+                created_at: "2026-02-03T10:00:00Z"
+                updated_at: "2026-02-03T15:30:00Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+                code: "TASK_NOT_FOUND"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      tags:
+        - tasks
+      summary: Partially update a task
+      description: Update one or more fields of an existing task. Only provided fields will be updated.
+      operationId: partialUpdateTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task to update
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPartialUpdate'
+            examples:
+              toggleCompleted:
+                summary: Toggle completion status
+                value:
+                  completed: true
+              updateTitle:
+                summary: Update title only
+                value:
+                  title: "New title"
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+              example:
+                id: 1
+                title: "Complete project documentation"
+                description: "Write comprehensive API documentation"
+                completed: true
+                user_id: 1
+                created_at: "2026-02-03T10:00:00Z"
+                updated_at: "2026-02-03T15:45:00Z"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+                code: "TASK_NOT_FOUND"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - tasks
+      summary: Delete a task
+      description: Permanently delete a task from the system.
+      operationId: deleteTask
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          description: ID of the task to delete
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+      responses:
+        '204':
+          description: Task deleted successfully (no content)
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: "Task not found"
+                code: "TASK_NOT_FOUND"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    TaskResponse:
+      type: object
+      required:
+        - id
+        - title
+        - completed
+        - user_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the task
+          example: 1
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          description: Task title
+          example: "Complete project documentation"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed task description (optional)
+          example: "Write comprehensive API documentation with examples"
+        completed:
+          type: boolean
+          description: Completion status
+          example: false
+        user_id:
+          type: integer
+          minimum: 1
+          description: ID of the user who owns this task
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was created (ISO 8601 UTC)
+          example: "2026-02-03T10:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when task was last updated (ISO 8601 UTC)
+          example: "2026-02-03T10:00:00Z"
+
+    TaskCreate:
+      type: object
+      required:
+        - title
+        - user_id
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          description: Task title
+          example: "Complete project documentation"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed task description (optional)
+          example: "Write comprehensive API documentation with examples"
+        completed:
+          type: boolean
+          default: false
+          description: Completion status (defaults to false)
+          example: false
+        user_id:
+          type: integer
+          minimum: 1
+          description: ID of the user who owns this task
+          example: 1
+
+    TaskUpdate:
+      type: object
+      required:
+        - title
+        - completed
+        - user_id
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          description: Task title
+          example: "Complete project documentation (updated)"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed task description (optional)
+          example: "Write comprehensive API documentation with examples"
+        completed:
+          type: boolean
+          description: Completion status
+          example: true
+        user_id:
+          type: integer
+          minimum: 1
+          description: ID of the user who owns this task
+          example: 1
+
+    TaskPartialUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          description: Task title
+          example: "New title"
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+          description: Detailed task description (optional)
+          example: "Updated description"
+        completed:
+          type: boolean
+          description: Completion status
+          example: true
+        user_id:
+          type: integer
+          minimum: 1
+          description: ID of the user who owns this task
+          example: 1
+
+    Error:
+      type: object
+      required:
+        - detail
+        - code
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Task not found"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "TASK_NOT_FOUND"
+
+    ValidationError:
+      type: object
+      required:
+        - detail
+        - code
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Validation error"
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "VALIDATION_ERROR"
+        errors:
+          type: array
+          description: List of field-level validation errors
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Name of the field with validation error
+                example: "title"
+              message:
+                type: string
+                description: Validation error message
+                example: "Field required"
