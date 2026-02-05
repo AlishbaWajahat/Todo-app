@@ -317,6 +317,8 @@ See `.specify/memory/constitution.md` for code quality, testing, performance, se
 - Neon Serverless PostgreSQL (cloud-hosted) (001-backend-task-api)
 - Python 3.11+ + FastAPI, SQLModel, python-jose[cryptography], psycopg2-binary, python-dotenv (002-backend-jwt-auth)
 - Neon Serverless PostgreSQL with connection pooling (002-backend-jwt-auth)
+- TypeScript 5.x with Next.js 16.0.1 (App Router) (003-frontend-todo-ui)
+- Backend API (FastAPI) with Neon PostgreSQL - frontend is stateless except for JWT token storage (003-frontend-todo-ui)
 
 ## Recent Changes
 - 001-backend-task-api: Added Python 3.11+ + FastAPI, SQLModel, Uvicorn (ASGI server), psycopg2-binary, python-dotenv, python-jose (for future JWT)
