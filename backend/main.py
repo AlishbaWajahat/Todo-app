@@ -11,6 +11,7 @@ Security:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 import logging
 
@@ -26,6 +27,47 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(name)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to add security headers to all responses.
+
+    Implements defense-in-depth security controls:
+    - HSTS: Force HTTPS for 1 year
+    - X-Content-Type-Options: Prevent MIME sniffing
+    - X-Frame-Options: Prevent clickjacking
+    - X-XSS-Protection: Enable XSS filter (legacy browsers)
+    - Content-Security-Policy: Restrict resource loading
+    - Referrer-Policy: Control referrer information
+    - Permissions-Policy: Disable unnecessary browser features
+    """
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+
+        # HSTS: Force HTTPS for 1 year (only in production)
+        if settings.environment == "production":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        # Prevent MIME sniffing
+        response.headers["X-Content-Type-Options"] = "nosniff"
+
+        # Prevent clickjacking
+        response.headers["X-Frame-Options"] = "DENY"
+
+        # XSS Protection (legacy browsers)
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+
+        # Content Security Policy
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
+
+        # Referrer Policy
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+
+        # Permissions Policy
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
+        return response
 
 
 @asynccontextmanager
@@ -95,13 +137,24 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Configure CORS middleware (must be added before auth middleware)
+# Restricts to only required methods and headers for security
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods only
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ],  # Explicit headers only
+    max_age=600,  # Cache preflight for 10 minutes
 )
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Register authentication middleware
