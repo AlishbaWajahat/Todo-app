@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { User } from '@/lib/types';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { ProfileAvatar } from './ProfileAvatar';
 import { updateUserProfile, uploadAvatar } from '@/lib/api/users';
 import { ApiError } from '@/lib/api/errors';
@@ -157,7 +157,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
 
         {/* Submit Button */}
         <div className="flex gap-3 pt-4">
-          <Button
+          <Buttonnn
             type="submit"
             variant="primary"
             loading={loading}
@@ -165,10 +165,10 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
             className="flex-1"
           >
             {loading ? 'Saving...' : 'Save Changes'}
-          </Button>
+          </Buttonnn>
 
           {hasChanges && !loading && (
-            <Button
+            <Buttonnn
               type="button"
               variant="secondary"
               onClick={() => {
@@ -184,7 +184,7 @@ export function ProfileForm({ user, onUpdate }: ProfileFormProps) {
               className="flex-1"
             >
               Cancel
-            </Button>
+            </Buttonnn>
           )}
         </div>
       </form>

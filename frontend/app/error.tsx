@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 
 export default function Error({
   error,
@@ -41,17 +41,17 @@ export default function Error({
         </p>
 
         <div className="flex flex-col gap-3">
-          <Button onClick={reset} variant="primary" className="w-full">
+          <Buttonnn onClick={reset} variant="primary" className="w-full">
             Try Again
-          </Button>
+          </Buttonnn>
 
-          <Button
+          <Buttonnn
             onClick={() => (window.location.href = '/')}
             variant="secondary"
             className="w-full"
           >
             Go to Home
-          </Button>
+          </Buttonnn>
         </div>
 
         {error.digest && (

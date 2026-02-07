@@ -77,7 +77,8 @@ export function ProfileAvatar({
     }
   };
 
-  const displayUrl = previewUrl || user.avatar_url;
+  // Construct full URL for avatar (backend serves static files)
+  const displayUrl = previewUrl || (user.avatar_url ? `${process.env.NEXT_PUBLIC_API_URL}${user.avatar_url}` : null);
 
   return (
     <div className="flex flex-col items-center gap-3">

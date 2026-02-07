@@ -7,7 +7,7 @@ import { ProfileForm } from '@/components/profile/ProfileForm';
 import { getCurrentUserProfile } from '@/lib/api/users';
 import { ApiError } from '@/lib/api/errors';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 
 /**
  * Profile Page
@@ -72,9 +72,9 @@ export default function ProfilePage() {
 
           <p className="text-gray-600 mb-6">{error}</p>
 
-          <Button onClick={fetchProfile} variant="primary">
+          <Buttonnn onClick={fetchProfile} variant="primary">
             Try Again
-          </Button>
+          </Buttonnn>
         </div>
       </div>
     );

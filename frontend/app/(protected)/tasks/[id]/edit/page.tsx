@@ -7,7 +7,7 @@ import { TaskForm } from '@/components/tasks/TaskForm';
 import { getTask } from '@/lib/api/tasks';
 import { ApiError } from '@/lib/api/errors';
 import { LoadingPage } from '@/components/ui/LoadingSpinner';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 
 /**
  * Edit Task Page
@@ -79,12 +79,12 @@ export default function EditTaskPage() {
           <p className="text-gray-600 mb-6">{error}</p>
 
           <div className="flex gap-3 justify-center">
-            <Button onClick={fetchTask} variant="primary">
+            <Buttonnn onClick={fetchTask} variant="primary">
               Try Again
-            </Button>
-            <Button onClick={() => router.push('/dashboard')} variant="secondary">
+            </Buttonnn>
+            <Buttonnn onClick={() => router.push('/dashboard')} variant="secondary">
               Back to Dashboard
-            </Button>
+            </Buttonnn>
           </div>
         </div>
       </div>
@@ -101,9 +101,9 @@ export default function EditTaskPage() {
           <p className="text-gray-600 mb-6">
             The task you are looking for does not exist or you do not have access to it.
           </p>
-          <Button onClick={() => router.push('/dashboard')} variant="primary">
+          <Buttonnn onClick={() => router.push('/dashboard')} variant="primary">
             Back to Dashboard
-          </Button>
+          </Buttonnn>
         </div>
       </div>
     );

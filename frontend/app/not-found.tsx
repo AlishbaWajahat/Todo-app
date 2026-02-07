@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 
 export default function NotFound() {
   return (
@@ -20,15 +20,15 @@ export default function NotFound() {
 
         <div className="flex flex-col gap-3">
           <Link href="/">
-            <Button variant="primary" className="w-full">
+            <Buttonnn variant="primary" className="w-full">
               Go to Home
-            </Button>
+            </Buttonnn>
           </Link>
 
           <Link href="/dashboard">
-            <Button variant="secondary" className="w-full">
+            <Buttonnn variant="secondary" className="w-full">
               Go to Dashboard
-            </Button>
+            </Buttonnn>
           </Link>
         </div>
       </div>

@@ -10,6 +10,44 @@ interface AuthResponse {
 }
 
 /**
+ * Set a cookie in the browser
+ */
+function setCookie(name: string, value: string, days: number = 7) {
+  if (typeof window === 'undefined') return;
+
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+/**
+ * Get a cookie value by name
+ */
+function getCookie(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+
+  return null;
+}
+
+/**
+ * Delete a cookie by name
+ */
+function deleteCookie(name: string) {
+  if (typeof window === 'undefined') return;
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
+/**
  * Sign up a new user
  *
  * @param data - Sign up form data
@@ -21,10 +59,10 @@ export async function signUp(data: SignUpFormData): Promise<AuthResponse> {
     body: JSON.stringify(data),
   });
 
-  // Store token in localStorage for subsequent requests
+  // Store token in cookies for middleware access
   if (typeof window !== 'undefined' && response.token) {
-    localStorage.setItem('auth_token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    setCookie('auth_token', response.token, 7);
+    setCookie('user', JSON.stringify(response.user), 7);
   }
 
   return response;
@@ -42,10 +80,10 @@ export async function signIn(data: SignInFormData): Promise<AuthResponse> {
     body: JSON.stringify(data),
   });
 
-  // Store token in localStorage for subsequent requests
+  // Store token in cookies for middleware access
   if (typeof window !== 'undefined' && response.token) {
-    localStorage.setItem('auth_token', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+    setCookie('auth_token', response.token, 7);
+    setCookie('user', JSON.stringify(response.user), 7);
   }
 
   return response;
@@ -53,18 +91,18 @@ export async function signIn(data: SignInFormData): Promise<AuthResponse> {
 
 /**
  * Sign out the current user
- * Clears local storage and redirects to sign in page
+ * Clears cookies and redirects to sign in page
  */
 export function signOut(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
+    deleteCookie('auth_token');
+    deleteCookie('user');
     window.location.href = '/signin';
   }
 }
 
 /**
- * Get current user from local storage
+ * Get current user from cookies
  *
  * @returns User object or null if not authenticated
  */
@@ -73,7 +111,7 @@ export function getCurrentUser(): User | null {
     return null;
   }
 
-  const userStr = localStorage.getItem('user');
+  const userStr = getCookie('user');
   if (!userStr) {
     return null;
   }
@@ -86,7 +124,7 @@ export function getCurrentUser(): User | null {
 }
 
 /**
- * Get current auth token from local storage
+ * Get current auth token from cookies
  *
  * @returns JWT token or null if not authenticated
  */
@@ -95,7 +133,7 @@ export function getAuthToken(): string | null {
     return null;
   }
 
-  return localStorage.getItem('auth_token');
+  return getCookie('auth_token');
 }
 
 /**

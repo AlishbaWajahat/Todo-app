@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Task, TaskFilter, TaskSort } from '@/lib/types';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { TaskList } from '@/components/tasks/TaskList';
 import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { DeleteConfirmModal } from '@/components/tasks/DeleteConfirmModal';
@@ -126,7 +126,7 @@ export default function DashboardPage() {
         </div>
 
         <Link href="/tasks/new">
-          <Button variant="primary" size="lg">
+          <Buttonnn variant="primary" size="lg">
             <svg
               className="w-5 h-5 mr-2"
               fill="none"
@@ -139,7 +139,7 @@ export default function DashboardPage() {
               <path d="M12 4v16m8-8H4" />
             </svg>
             New Task
-          </Button>
+          </Buttonnn>
         </Link>
       </div>
 
@@ -160,14 +160,14 @@ export default function DashboardPage() {
             </svg>
             <div className="flex-1">
               <p className="text-sm text-red-600">{error}</p>
-              <Button
+              <Buttonnn
                 variant="ghost"
                 size="sm"
                 onClick={fetchTasks}
                 className="mt-2 text-red-600 hover:bg-red-50"
               >
                 Try Again
-              </Button>
+              </Buttonnn>
             </div>
           </div>
         </div>
