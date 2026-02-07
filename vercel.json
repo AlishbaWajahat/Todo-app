@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd frontend && npm run build",
+  "devCommand": "cd frontend && npm run dev",
+  "installCommand": "cd frontend && npm install",
+  "framework": "nextjs",
+  "outputDirectory": "frontend/.next",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet . ':(exclude)backend/**'",
+  "env": {
+    "NEXT_PUBLIC_API_URL": "@next_public_api_url",
+    "BETTER_AUTH_SECRET": "@better_auth_secret",
+    "BETTER_AUTH_URL": "@better_auth_url",
+    "JWT_SECRET": "@jwt_secret",
+    "JWT_ALGORITHM": "HS256",
+    "JWT_EXPIRATION": "86400"
+  }
+}
