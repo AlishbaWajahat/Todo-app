@@ -1,6 +1,0 @@
-# Vercel ignore file
-backend/
-.git/
-.github/
-*.md
-!frontend/README.md
