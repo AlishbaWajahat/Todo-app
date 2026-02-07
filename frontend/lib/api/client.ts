@@ -9,6 +9,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 if (typeof window !== 'undefined') {
   console.log('🔍 API_BASE_URL:', API_BASE_URL);
   console.log('🔍 NEXT_PUBLIC_API_URL env:', process.env.NEXT_PUBLIC_API_URL);
+  console.log('🔍 Cache buster:', Date.now()); // Force new build
 }
 
 /**
