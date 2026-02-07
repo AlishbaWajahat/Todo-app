@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Button } from '@/components/ui/Buttonnn';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 
 /**
  * Header Component
