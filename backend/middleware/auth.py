@@ -213,7 +213,9 @@ async def auth_middleware(request: Request, call_next):
         "/openapi.json",
         "/",  # Root endpoint
         "/api/v1/auth/signup",  # Public signup endpoint
+        "/api/v1/auth/signup/",  # Public signup endpoint (with trailing slash)
         "/api/v1/auth/signin",  # Public signin endpoint
+        "/api/v1/auth/signin/",  # Public signin endpoint (with trailing slash)
     ]
 
     if request.url.path in bypass_paths:
