@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
     ],
   },
   reactStrictMode: true,
+  // Force rebuild to pick up environment variables
 };
 
 export default nextConfig;
