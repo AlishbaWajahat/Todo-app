@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Task, TaskCreateData, TaskUpdateData } from '@/lib/types';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { createTask, updateTask } from '@/lib/api/tasks';
 import { ApiError } from '@/lib/api/errors';
 
@@ -187,7 +187,7 @@ export function TaskForm({ task, mode }: TaskFormProps) {
         />
 
         <div className="flex gap-3 pt-4">
-          <Button
+          <Buttonnn
             type="submit"
             variant="primary"
             loading={loading}
@@ -201,9 +201,9 @@ export function TaskForm({ task, mode }: TaskFormProps) {
               : mode === 'create'
               ? 'Create Task'
               : 'Save Changes'}
-          </Button>
+          </Buttonnn>
 
-          <Button
+          <Buttonnn
             type="button"
             variant="secondary"
             onClick={handleCancel}
@@ -211,7 +211,7 @@ export function TaskForm({ task, mode }: TaskFormProps) {
             className="flex-1"
           >
             Cancel
-          </Button>
+          </Buttonnn>
         </div>
       </form>
     </div>

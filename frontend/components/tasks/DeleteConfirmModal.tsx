@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { Task } from '@/lib/types';
 import { deleteTask } from '@/lib/api/tasks';
 import { ApiError } from '@/lib/api/errors';
@@ -87,21 +87,21 @@ export function DeleteConfirmModal({
         </p>
 
         <ModalFooter>
-          <Button
+          <Buttonnn
             variant="secondary"
             onClick={handleClose}
             disabled={loading}
           >
             Cancel
-          </Button>
-          <Button
+          </Buttonnn>
+          <Buttonnn
             variant="danger"
             onClick={handleDelete}
             loading={loading}
             disabled={loading}
           >
             {loading ? 'Deleting...' : 'Delete Task'}
-          </Button>
+          </Buttonnn>
         </ModalFooter>
       </div>
     </Modal>

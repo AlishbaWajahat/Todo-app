@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { signIn } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/errors';
 import { SignInFormData } from '@/lib/types';
@@ -91,7 +91,7 @@ export function SignInForm() {
           disabled={loading}
         />
 
-        <Button
+        <Buttonnn
           type="submit"
           variant="primary"
           className="w-full"
@@ -99,7 +99,7 @@ export function SignInForm() {
           disabled={loading}
         >
           {loading ? 'Signing in...' : 'Sign In'}
-        </Button>
+        </Buttonnn>
       </form>
 
       <div className="mt-6 text-center">

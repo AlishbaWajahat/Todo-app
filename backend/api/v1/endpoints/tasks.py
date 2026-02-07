@@ -270,6 +270,73 @@ def update_task(
         )
 
 
+@router.patch("/{task_id}/complete", response_model=TaskResponse, status_code=status.HTTP_200_OK)
+def toggle_task_complete(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    """
+    Toggle task completion status.
+
+    Toggles the completed field between true and false.
+    Updates task only if it belongs to the authenticated user.
+    Returns 404 if task doesn't exist OR belongs to another user.
+
+    Security:
+    - Query filters by both task_id AND user_id
+    - Returns 404 (not 403) to prevent information leakage
+
+    Args:
+        task_id: Task identifier
+        current_user: Authenticated user (injected by dependency)
+        session: Database session (injected)
+
+    Returns:
+        TaskResponse: Updated task with toggled completion status
+
+    Raises:
+        HTTPException 404: Task not found or user doesn't have permission
+        HTTPException 401: Authentication required (handled by middleware)
+    """
+    try:
+        # Query with user isolation
+        statement = select(Task).where(
+            Task.id == task_id,
+            Task.user_id == current_user.id
+        )
+        task = session.exec(statement).first()
+
+        if not task:
+            # Return 404 (not 403) to prevent information leakage
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Task not found or you don't have permission to access it"
+            )
+
+        # Toggle completion status
+        task.completed = not task.completed
+        task.updated_at = datetime.utcnow()
+
+        # Save changes
+        session.add(task)
+        session.commit()
+        session.refresh(task)
+
+        logger.info(f"Task completion toggled: id={task_id}, completed={task.completed}, user_id={current_user.id}")
+        return task
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Failed to toggle task completion {task_id} for user {current_user.id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to toggle task completion"
+        )
+
+
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(
     task_id: int,

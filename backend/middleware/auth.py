@@ -179,6 +179,7 @@ async def auth_middleware(request: Request, call_next):
     5. Pass request to next middleware/route handler
 
     Bypass Rules:
+    - OPTIONS requests bypass authentication (CORS preflight)
     - /health endpoint bypasses authentication (for monitoring)
     - /docs, /redoc, /openapi.json bypass authentication (API documentation)
 
@@ -200,8 +201,26 @@ async def auth_middleware(request: Request, call_next):
     - User identity derived entirely from JWT token
     - Token must be present and valid on every request
     """
-    # Bypass authentication for health check and documentation endpoints
-    if request.url.path in ["/health", "/docs", "/redoc", "/openapi.json"]:
+    # Allow OPTIONS requests (CORS preflight) without authentication
+    if request.method == "OPTIONS":
+        return await call_next(request)
+
+    # Bypass authentication for health check, documentation, and auth endpoints
+    bypass_paths = [
+        "/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/",  # Root endpoint
+        "/api/v1/auth/signup",  # Public signup endpoint
+        "/api/v1/auth/signin",  # Public signin endpoint
+    ]
+
+    if request.url.path in bypass_paths:
+        return await call_next(request)
+
+    # Allow public access to uploaded files (avatars)
+    if request.url.path.startswith("/uploads/"):
         return await call_next(request)
 
     # Extract Authorization header

@@ -6,18 +6,33 @@ import { ApiError } from './errors';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
- * Get JWT token from Better Auth session
- * This will be implemented after Better Auth is configured
+ * Get a cookie value by name
+ */
+function getCookie(name: string): string | null {
+  if (typeof window === 'undefined') return null;
+
+  const nameEQ = name + '=';
+  const ca = document.cookie.split(';');
+
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+
+  return null;
+}
+
+/**
+ * Get JWT token from cookies
  */
 async function getAuthToken(): Promise<string | null> {
-  // TODO: Implement after Better Auth setup
-  // For now, return null - will be updated in Phase 3
   if (typeof window === 'undefined') {
     return null;
   }
 
-  // Check localStorage for token (temporary until Better Auth is set up)
-  return localStorage.getItem('auth_token');
+  // Read token from cookies (set by auth.ts)
+  return getCookie('auth_token');
 }
 
 /**

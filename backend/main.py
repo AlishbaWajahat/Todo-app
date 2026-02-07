@@ -11,13 +11,15 @@ Security:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
+from pathlib import Path
 import logging
 
 from core.config import settings
 from core.database import create_db_and_tables
-from api.v1.endpoints import tasks
+from api.v1.endpoints import tasks, auth, users
 from middleware.auth import auth_middleware
 
 # Configure logging
@@ -142,7 +144,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit methods only
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],  # Explicit methods only
     allow_headers=[
         "Authorization",
         "Content-Type",
@@ -171,7 +173,15 @@ async def authentication_middleware(request, call_next):
 
 
 # Include API routers
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(tasks.router, prefix="/api/v1")
+
+# Mount static files for uploaded avatars
+# Create uploads directory if it doesn't exist
+UPLOADS_DIR = Path("uploads")
+UPLOADS_DIR.mkdir(exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 
 @app.get("/", tags=["root"])

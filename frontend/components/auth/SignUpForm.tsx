@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
+import { Buttonnn } from '@/components/ui/Buttonnn';
 import { signUp } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/errors';
 import { SignUpFormData } from '@/lib/types';
@@ -119,7 +119,7 @@ export function SignUpForm() {
           error={fieldErrors.name}
         />
 
-        <Button
+        <Buttonnn
           type="submit"
           variant="primary"
           className="w-full"
@@ -127,7 +127,7 @@ export function SignUpForm() {
           disabled={loading}
         >
           {loading ? 'Creating account...' : 'Sign Up'}
-        </Button>
+        </Buttonnn>
       </form>
 
       <div className="mt-6 text-center">
