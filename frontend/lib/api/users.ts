@@ -7,7 +7,7 @@ import { User } from '@/lib/types';
  * @returns User object
  */
 export async function getCurrentUserProfile(): Promise<User> {
-  return apiRequest<User>('/api/v1/users/me', {
+  return apiRequest<User>('/api/v1/users/me/', {
     method: 'GET',
   });
 }
@@ -21,7 +21,7 @@ export async function getCurrentUserProfile(): Promise<User> {
 export async function updateUserProfile(data: {
   name?: string;
 }): Promise<User> {
-  return apiRequest<User>('/api/v1/users/me', {
+  return apiRequest<User>('/api/v1/users/me/', {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -37,5 +37,5 @@ export async function uploadAvatar(file: File): Promise<User> {
   const formData = new FormData();
   formData.append('avatar', file);
 
-  return apiUpload<User>('/api/v1/users/me/avatar', formData);
+  return apiUpload<User>('/api/v1/users/me/avatar/', formData);
 }

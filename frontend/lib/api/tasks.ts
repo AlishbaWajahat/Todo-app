@@ -7,7 +7,7 @@ import { Task, TaskCreateData, TaskUpdateData } from '@/lib/types';
  * @returns Array of tasks
  */
 export async function getTasks(): Promise<Task[]> {
-  return apiRequest<Task[]>('/api/v1/tasks', {
+  return apiRequest<Task[]>('/api/v1/tasks/', {
     method: 'GET',
   });
 }
@@ -19,7 +19,7 @@ export async function getTasks(): Promise<Task[]> {
  * @returns Task object
  */
 export async function getTask(id: number): Promise<Task> {
-  return apiRequest<Task>(`/api/v1/tasks/${id}`, {
+  return apiRequest<Task>(`/api/v1/tasks/${id}/`, {
     method: 'GET',
   });
 }
@@ -31,7 +31,7 @@ export async function getTask(id: number): Promise<Task> {
  * @returns Created task
  */
 export async function createTask(data: TaskCreateData): Promise<Task> {
-  return apiRequest<Task>('/api/v1/tasks', {
+  return apiRequest<Task>('/api/v1/tasks/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -45,7 +45,7 @@ export async function createTask(data: TaskCreateData): Promise<Task> {
  * @returns Updated task
  */
 export async function updateTask(id: number, data: TaskUpdateData): Promise<Task> {
-  return apiRequest<Task>(`/api/v1/tasks/${id}`, {
+  return apiRequest<Task>(`/api/v1/tasks/${id}/`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -57,7 +57,7 @@ export async function updateTask(id: number, data: TaskUpdateData): Promise<Task
  * @param id - Task ID
  */
 export async function deleteTask(id: number): Promise<void> {
-  return apiRequest<void>(`/api/v1/tasks/${id}`, {
+  return apiRequest<void>(`/api/v1/tasks/${id}/`, {
     method: 'DELETE',
   });
 }
@@ -69,7 +69,7 @@ export async function deleteTask(id: number): Promise<void> {
  * @returns Updated task
  */
 export async function toggleTaskComplete(id: number): Promise<Task> {
-  return apiRequest<Task>(`/api/v1/tasks/${id}/complete`, {
+  return apiRequest<Task>(`/api/v1/tasks/${id}/complete/`, {
     method: 'PATCH',
   });
 }

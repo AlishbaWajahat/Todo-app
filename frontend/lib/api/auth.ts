@@ -54,7 +54,7 @@ function deleteCookie(name: string) {
  * @returns User and JWT token
  */
 export async function signUp(data: SignUpFormData): Promise<AuthResponse> {
-  const response = await apiRequest<AuthResponse>('/api/v1/auth/signup', {
+  const response = await apiRequest<AuthResponse>('/api/v1/auth/signup/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -75,7 +75,7 @@ export async function signUp(data: SignUpFormData): Promise<AuthResponse> {
  * @returns User and JWT token
  */
 export async function signIn(data: SignInFormData): Promise<AuthResponse> {
-  const response = await apiRequest<AuthResponse>('/api/v1/auth/signin', {
+  const response = await apiRequest<AuthResponse>('/api/v1/auth/signin/', {
     method: 'POST',
     body: JSON.stringify(data),
   });
