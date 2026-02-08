@@ -78,7 +78,22 @@ export function ProfileAvatar({
   };
 
   // Construct full URL for avatar (backend serves static files)
-  const displayUrl = previewUrl || (user.avatar_url ? `${process.env.NEXT_PUBLIC_API_URL}${user.avatar_url}` : null);
+  // Handle both absolute URLs (new format) and relative URLs (legacy format)
+  const getAvatarUrl = () => {
+    if (previewUrl) return previewUrl;
+    if (!user.avatar_url) return null;
+
+    // If URL is already absolute (starts with http:// or https://), use it as-is
+    if (user.avatar_url.startsWith('http://') || user.avatar_url.startsWith('https://')) {
+      return user.avatar_url;
+    }
+
+    // Otherwise, prepend the API base URL for relative paths
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    return `${apiUrl}${user.avatar_url}`;
+  };
+
+  const displayUrl = getAvatarUrl();
 
   return (
     <div className="flex flex-col items-center gap-3">
