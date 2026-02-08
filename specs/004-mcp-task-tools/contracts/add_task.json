@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "add_task Tool Contract",
+  "description": "MCP tool for creating a new task for a user",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Authenticated user ID (required)",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "description": "Task title (required)",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "description": {
+          "type": ["string", "null"],
+          "description": "Task description (optional)",
+          "maxLength": 2000,
+          "default": null
+        },
+        "priority": {
+          "type": ["string", "null"],
+          "description": "Task priority: low, medium, high (optional)",
+          "enum": ["low", "medium", "high", null],
+          "default": null
+        },
+        "due_date": {
+          "type": ["string", "null"],
+          "description": "Task due date in ISO 8601 format (optional)",
+          "format": "date-time",
+          "default": null
+        }
+      },
+      "required": ["user_id", "title"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation succeeded"
+        },
+        "data": {
+          "type": ["object", "null"],
+          "properties": {
+            "task": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "integer"},
+                "user_id": {"type": "string"},
+                "title": {"type": "string"},
+                "description": {"type": ["string", "null"]},
+                "completed": {"type": "boolean"},
+                "priority": {"type": ["string", "null"]},
+                "due_date": {"type": ["string", "null"], "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "updated_at": {"type": "string", "format": "date-time"}
+              },
+              "required": ["id", "user_id", "title", "completed", "created_at", "updated_at"]
+            }
+          },
+          "required": ["task"]
+        },
+        "error": {
+          "type": ["string", "null"],
+          "description": "Human-readable error message (present on failure)"
+        },
+        "error_code": {
+          "type": ["string", "null"],
+          "description": "Machine-readable error code (present on failure)",
+          "enum": ["INVALID_USER_ID", "VALIDATION_ERROR", "DATABASE_ERROR", "INTERNAL_ERROR", null]
+        }
+      },
+      "required": ["success"]
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "user_id": "user123",
+        "title": "Buy milk",
+        "description": "Get 2% milk from store",
+        "priority": "medium",
+        "due_date": "2026-02-10T10:00:00Z"
+      },
+      "output": {
+        "success": true,
+        "data": {
+          "task": {
+            "id": 1,
+            "user_id": "user123",
+            "title": "Buy milk",
+            "description": "Get 2% milk from store",
+            "completed": false,
+            "priority": "medium",
+            "due_date": "2026-02-10T10:00:00Z",
+            "created_at": "2026-02-09T10:30:00Z",
+            "updated_at": "2026-02-09T10:30:00Z"
+          }
+        },
+        "error": null,
+        "error_code": null
+      }
+    },
+    {
+      "input": {
+        "user_id": "user123",
+        "title": "A".repeat(501),
+        "description": null,
+        "priority": null,
+        "due_date": null
+      },
+      "output": {
+        "success": false,
+        "data": null,
+        "error": "Task title must be 500 characters or less",
+        "error_code": "VALIDATION_ERROR"
+      }
+    }
+  ]
+}
