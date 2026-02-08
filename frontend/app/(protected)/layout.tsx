@@ -23,7 +23,7 @@ export default function ProtectedLayout({
       <Header />
 
       {/* Main content with skip-to-content target */}
-      <main id="main-content" className="max-w-[1200px] mx-auto px-4 py-8" tabIndex={-1}>
+      <main id="main-content" className="max-w-[800px] mx-auto px-4 py-8" tabIndex={-1}>
         {children}
       </main>
     </div>
