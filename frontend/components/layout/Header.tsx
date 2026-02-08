@@ -32,7 +32,7 @@ export function Header() {
         Skip to main content
       </a>
 
-      <div className="container mx-auto px-4">
+      <div className="max-w-[1200px] mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2">
