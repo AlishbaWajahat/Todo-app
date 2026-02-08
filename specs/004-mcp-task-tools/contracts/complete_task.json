@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "complete_task Tool Contract",
+  "description": "MCP tool for marking a task as complete or incomplete",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Authenticated user ID (required)",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "integer",
+          "description": "Task ID to update (required)",
+          "minimum": 1
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "New completion status (required)"
+        }
+      },
+      "required": ["user_id", "task_id", "completed"],
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation succeeded"
+        },
+        "data": {
+          "type": ["object", "null"],
+          "properties": {
+            "task": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "integer"},
+                "user_id": {"type": "string"},
+                "title": {"type": "string"},
+                "description": {"type": ["string", "null"]},
+                "completed": {"type": "boolean"},
+                "priority": {"type": ["string", "null"]},
+                "due_date": {"type": ["string", "null"], "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "updated_at": {"type": "string", "format": "date-time"}
+              },
+              "required": ["id", "user_id", "title", "completed", "created_at", "updated_at"]
+            }
+          },
+          "required": ["task"]
+        },
+        "error": {
+          "type": ["string", "null"],
+          "description": "Human-readable error message (present on failure)"
+        },
+        "error_code": {
+          "type": ["string", "null"],
+          "description": "Machine-readable error code (present on failure)",
+          "enum": ["INVALID_USER_ID", "TASK_NOT_FOUND", "DATABASE_ERROR", "INTERNAL_ERROR", null]
+        }
+      },
+      "required": ["success"]
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "user_id": "user123",
+        "task_id": 1,
+        "completed": true
+      },
+      "output": {
+        "success": true,
+        "data": {
+          "task": {
+            "id": 1,
+            "user_id": "user123",
+            "title": "Buy milk",
+            "description": "Get 2% milk from store",
+            "completed": true,
+            "priority": "medium",
+            "due_date": "2026-02-10T10:00:00Z",
+            "created_at": "2026-02-09T10:00:00Z",
+            "updated_at": "2026-02-09T10:35:00Z"
+          }
+        },
+        "error": null,
+        "error_code": null
+      }
+    },
+    {
+      "input": {
+        "user_id": "user123",
+        "task_id": 999,
+        "completed": true
+      },
+      "output": {
+        "success": false,
+        "data": null,
+        "error": "Task not found or you don't have permission to access it",
+        "error_code": "TASK_NOT_FOUND"
+      }
+    }
+  ]
+}

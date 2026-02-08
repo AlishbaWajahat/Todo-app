@@ -1,22 +1,26 @@
 <!--
-Sync Impact Report - Constitution v1.1.0
+Sync Impact Report - Constitution v1.2.0
 ========================================
-Version Change: 1.0.0 → 1.1.0
-Rationale: MINOR version bump - Added testable compliance checks, definition of done, and enhanced principle clarity
+Version Change: 1.1.0 → 1.2.0
+Rationale: MINOR version bump - Added Phase III (AI-powered Todo Chatbot) principles and MCP architecture standards
 
 Modified Principles:
-- Principle I (Spec-Driven Development): Added verification checks
-- Principle II (Zero Manual Coding): Added emergency hotfix criteria and verification checks
-- Principle V (API Contract Discipline): Added concrete definitions for "consistent", "meaningful errors", and "business logic boundary"
+- Principle III (Security-First Architecture): Added chatbot security requirements (JWT for chat/tool calls)
+- Principle IV (Technology Stack Adherence): Added Claude SDK, MCP, and chatbot stack
+
+Added Principles:
+- Principle VII: Stateless Architecture (NON-NEGOTIABLE) - No in-memory state, DB-backed persistence
+- Principle VIII: MCP Tool Standards (NON-NEGOTIABLE) - Stateless tools, explicit schemas, user_id enforcement
+- Principle IX: Agent-Tool Interaction Rules - Agent must use MCP tools, no direct DB access, confirmations required
 
 Added Sections:
-- Testable Compliance Checks (comprehensive verification criteria)
-  - Security Verification (authentication, authorization, secrets)
-  - API Contract Verification (RESTful conventions, response format, HTTP status codes)
-  - Data Persistence Verification (user isolation, database schema)
-  - Frontend-Backend Integration (API communication, business logic boundary)
-  - Technology Stack Verification (automated checks)
-- Definition of Done (hackathon MVP criteria and out-of-scope items)
+- Phase III Compliance Checks (chatbot-specific verification)
+  - Stateless Architecture Verification
+  - MCP Tool Verification
+  - Agent-Tool Interaction Verification
+  - Conversation Persistence Verification
+- Updated Definition of Done with Phase III criteria
+- Updated Technology Stack with chatbot components
 
 Removed Sections: None
 
@@ -29,11 +33,13 @@ Templates Requiring Updates:
 Follow-up TODOs: None
 
 Key Improvements:
-1. All vague rules converted to testable checks with PASS/FAIL criteria
-2. Added concrete definitions for ambiguous terms ("consistent", "meaningful", "business logic")
-3. Added clear success criteria (Definition of Done) for hackathon MVP
-4. Added emergency hotfix criteria for Zero Manual Coding principle
-5. Added automated verification commands for technology stack compliance
+1. Added comprehensive stateless architecture requirements for chatbot
+2. Added MCP tool standards with explicit input/output schema requirements
+3. Added agent-tool interaction rules preventing direct DB access
+4. Added conversation persistence requirements (server restart resilience)
+5. Added Phase III security requirements (JWT for all chat/tool operations)
+6. Added code hygiene standards (no unused files, modular structure)
+7. All new rules are testable with PASS/FAIL criteria
 -->
 
 # Full-Stack Multi-User Todo Web Application Constitution
@@ -96,6 +102,7 @@ a clear audit trail of all development decisions and implementations.
 
 Security MUST be the primary consideration in all architectural decisions.
 
+**Phase II Requirements (Web Application):**
 - All API routes MUST require valid JWT authentication
 - JWT tokens MUST be verified on every backend request
 - User data MUST be strictly isolated (users can only access their own data)
@@ -106,33 +113,49 @@ Security MUST be the primary consideration in all architectural decisions.
 - Authentication failures MUST return 401 Unauthorized
 - Authorization failures MUST return 403 Forbidden
 
+**Phase III Requirements (AI Chatbot):**
+- All chat endpoints MUST require valid JWT authentication
+- All MCP tool calls MUST include user_id from authenticated JWT
+- Conversation history MUST be filtered by authenticated user_id
+- Tool calls MUST validate user_id matches authenticated user
+- Chat messages MUST be persisted with user_id for isolation
+- No cross-user conversation access (strict isolation)
+- Agent MUST NOT bypass authentication/authorization checks
+
 **Rationale**: Multi-user applications require strict security boundaries. JWT-based
 authentication with proper verification ensures user data isolation and prevents
-unauthorized access.
+unauthorized access. Chatbot security extends these principles to conversational AI,
+ensuring users can only access their own conversations and todo data.
 
 ### IV. Technology Stack Adherence
 
 All implementations MUST use the specified technology stack without deviation.
 
-**Frontend:**
+**Frontend (Phase II & III):**
 - Next.js 16+ with App Router (no Pages Router)
 - Tailwind CSS for styling (no other CSS frameworks)
 - TypeScript for type safety
 
-**Backend:**
+**Backend (Phase II & III):**
 - Python FastAPI (no other Python frameworks)
 - SQLModel for ORM (combines SQLAlchemy + Pydantic)
 - Pydantic for request/response validation
 
-**Database:**
+**Database (Phase II & III):**
 - Neon Serverless PostgreSQL (no other databases)
 - Connection pooling configured for serverless
 - Alembic for migrations
 
-**Authentication:**
+**Authentication (Phase II & III):**
 - Better Auth for frontend authentication
 - JWT tokens for backend verification
 - python-jose for JWT handling in FastAPI
+
+**AI Chatbot Stack (Phase III):**
+- Anthropic Claude SDK (claude-3-5-sonnet or claude-3-5-haiku)
+- Model Context Protocol (MCP) for tool integration
+- Streaming responses for real-time chat experience
+- Structured tool schemas (Pydantic models)
 
 **Tooling:**
 - Claude Code for all code generation
@@ -140,7 +163,8 @@ All implementations MUST use the specified technology stack without deviation.
 
 **Rationale**: Technology constraints ensure consistency, enable agent specialization,
 and prevent architectural drift. The chosen stack is optimized for serverless
-deployment and AI-assisted development.
+deployment and AI-assisted development. MCP provides standardized tool integration
+for AI agents.
 
 ### V. API Contract Discipline
 
@@ -214,6 +238,114 @@ All sensitive configuration MUST be managed via environment variables.
 configuration enables secure deployment across different environments and prevents
 accidental exposure of credentials.
 
+### VII. Stateless Architecture (NON-NEGOTIABLE - Phase III)
+
+All backend services MUST be stateless with no in-memory state for chat or tool operations.
+
+**Testable Requirements:**
+- No in-memory chat history storage (must use database)
+- No in-memory tool state or caching (must use database)
+- Conversation history MUST be rebuilt from database on every request
+- Server restart MUST NOT break ongoing conversations
+- All chat messages MUST be persisted to database before response
+- All tool execution results MUST be persisted to database
+- No session state stored in backend memory (only JWT tokens)
+- Database is the single source of truth for all conversation state
+
+**Verification Checks:**
+- ✅ PASS: Server restart → existing conversations still accessible
+- ✅ PASS: No global variables or class-level state in chat/tool code
+- ✅ PASS: All chat endpoints query database for conversation history
+- ✅ PASS: All tool endpoints query database for task/todo data
+- ❌ FAIL: Any in-memory cache, session store, or state dictionary detected
+
+**Rationale**: Stateless architecture ensures scalability, reliability, and resilience.
+In serverless/cloud environments, instances can be terminated at any time. Database-backed
+persistence guarantees conversation continuity and enables horizontal scaling.
+
+### VIII. MCP Tool Standards (NON-NEGOTIABLE - Phase III)
+
+All Model Context Protocol (MCP) tools MUST be stateless, database-backed, and schema-validated.
+
+**Testable Requirements:**
+- Tools MUST be stateless (no internal state between calls)
+- Tools MUST query database for all data (no caching)
+- Tools MUST have explicit input schemas (Pydantic models)
+- Tools MUST have explicit output schemas (Pydantic models)
+- Tools MUST enforce user_id ownership (filter by authenticated user)
+- Tools MUST validate all inputs before execution
+- Tools MUST return structured responses (not plain text)
+- Tools MUST handle errors gracefully with error codes
+
+**Input Schema Requirements:**
+```python
+class ToolInput(BaseModel):
+    user_id: int  # REQUIRED: authenticated user ID
+    # ... other tool-specific fields with types and validation
+```
+
+**Output Schema Requirements:**
+```python
+class ToolOutput(BaseModel):
+    success: bool
+    data: Optional[Dict[str, Any]]
+    error: Optional[str]
+    error_code: Optional[str]
+```
+
+**Verification Checks:**
+- ✅ PASS: All MCP tools have Pydantic input/output models
+- ✅ PASS: All MCP tools include user_id in input schema
+- ✅ PASS: All MCP tools filter database queries by user_id
+- ✅ PASS: All MCP tools return structured JSON (not strings)
+- ✅ PASS: Tool execution without user_id returns error
+- ❌ FAIL: Any tool with untyped inputs or string-only outputs
+- ❌ FAIL: Any tool that doesn't filter by user_id
+
+**Rationale**: Explicit schemas enable validation, type safety, and clear contracts.
+User_id enforcement prevents data leakage. Stateless tools ensure predictable behavior
+and enable parallel execution.
+
+### IX. Agent-Tool Interaction Rules (Phase III)
+
+AI agents MUST use MCP tools for all task mutations and MUST NOT access database directly.
+
+**Testable Requirements:**
+- Agent MUST use MCP tools for all todo/task operations (create, read, update, delete)
+- Agent MUST NOT import database models or execute SQL directly
+- Agent MUST NOT bypass tool layer to access database
+- Agent MUST request user confirmation before destructive actions (delete, bulk update)
+- Agent MUST validate tool responses before presenting to user
+- Agent MUST handle tool errors gracefully with user-friendly messages
+- Agent MUST pass authenticated user_id to all tool calls
+
+**Action Confirmation Requirements:**
+Destructive actions requiring confirmation:
+- Deleting todos (single or multiple)
+- Marking all todos as complete/incomplete
+- Clearing completed todos
+- Any bulk operation affecting >1 todo
+
+Confirmation format:
+```
+⚠️ Confirm action: [description]
+- Affected items: [count]
+- Action: [what will happen]
+Type 'yes' to confirm or 'no' to cancel.
+```
+
+**Verification Checks:**
+- ✅ PASS: Agent code contains no database imports (SQLModel, Session, etc.)
+- ✅ PASS: Agent code contains no SQL queries
+- ✅ PASS: All todo operations go through MCP tool calls
+- ✅ PASS: Destructive actions show confirmation prompt
+- ✅ PASS: Agent validates tool responses before using data
+- ❌ FAIL: Agent imports database models or executes queries
+- ❌ FAIL: Destructive action executes without confirmation
+
+**Rationale**: Tool layer provides abstraction, validation, and security. Direct database
+access bypasses validation and user_id filtering. Confirmations prevent accidental data loss.
+
 ## Testable Compliance Checks
 
 ### Security Verification (NON-NEGOTIABLE)
@@ -237,6 +369,145 @@ accidental exposure of credentials.
 - ✅ PASS: `.env` is in `.gitignore`
 - ✅ PASS: All secrets loaded from `os.getenv()` or `process.env`
 - ❌ FAIL: Any hardcoded connection string, API key, or JWT secret found
+
+**Chatbot Security Tests (Phase III):**
+- ✅ PASS: All chat endpoints require valid JWT token
+- ✅ PASS: All MCP tool calls include user_id from authenticated JWT
+- ✅ PASS: Chat endpoint returns 401 when JWT is missing or invalid
+- ✅ PASS: Tool calls with mismatched user_id (JWT vs request) return 403
+- ✅ PASS: Conversation history filtered by authenticated user_id
+- ❌ FAIL: Any chat/tool endpoint accepts requests without JWT
+- ❌ FAIL: Any tool call bypasses user_id validation
+
+### Phase III Compliance Checks (AI-Powered Chatbot)
+
+### Stateless Architecture Verification (NON-NEGOTIABLE)
+
+**No In-Memory State:**
+- ✅ PASS: No global variables storing chat history
+- ✅ PASS: No class-level state in chat/tool handlers
+- ✅ PASS: No in-memory caching of conversations or tool results
+- ✅ PASS: All chat endpoints query database for conversation history
+- ❌ FAIL: Any in-memory session store, cache, or state dictionary
+
+**Database-Backed Persistence:**
+- ✅ PASS: All chat messages stored in database before response sent
+- ✅ PASS: All tool execution results stored in database
+- ✅ PASS: Conversation history rebuilt from database on every request
+- ✅ PASS: Database has tables for: conversations, messages, tool_calls
+- ❌ FAIL: Any chat data not persisted to database
+
+**Server Restart Resilience:**
+- ✅ PASS: Stop backend server → restart → existing conversations still accessible
+- ✅ PASS: Stop backend server → restart → chat history intact
+- ✅ PASS: Stop backend server → restart → tool execution history intact
+- ❌ FAIL: Server restart causes conversation loss or corruption
+
+### MCP Tool Verification
+
+**Tool Schema Validation:**
+- ✅ PASS: All MCP tools have Pydantic input models with explicit types
+- ✅ PASS: All MCP tools have Pydantic output models with explicit types
+- ✅ PASS: All tool input schemas include `user_id: int` field
+- ✅ PASS: All tool output schemas include `success: bool` field
+- ✅ PASS: Tool input validation rejects invalid types/missing fields
+- ❌ FAIL: Any tool with untyped inputs (Dict[str, Any] without validation)
+- ❌ FAIL: Any tool with string-only outputs (not structured JSON)
+
+**Tool Statelessness:**
+- ✅ PASS: Tools have no instance variables storing state
+- ✅ PASS: Tools query database for all data (no caching)
+- ✅ PASS: Same input always produces same output (idempotent where applicable)
+- ✅ PASS: Tools can be called in any order without side effects
+- ❌ FAIL: Tool behavior depends on previous calls or internal state
+
+**User Ownership Enforcement:**
+- ✅ PASS: All tool database queries include `WHERE user_id = <authenticated_user_id>`
+- ✅ PASS: Tool call with user_id=1 cannot access user_id=2 data
+- ✅ PASS: Tool call without user_id returns error (not default user)
+- ✅ PASS: Tool call with mismatched user_id (JWT vs input) returns 403
+- ❌ FAIL: Any tool query returns data from multiple users
+- ❌ FAIL: Any tool accepts requests without user_id validation
+
+### Agent-Tool Interaction Verification
+
+**No Direct Database Access:**
+- ✅ PASS: Agent code contains no `from sqlmodel import` or database imports
+- ✅ PASS: Agent code contains no SQL queries or ORM calls
+- ✅ PASS: Agent code contains no `Session()` or database connection code
+- ✅ PASS: All todo operations use MCP tool calls (not direct DB access)
+- ❌ FAIL: Agent imports database models or executes queries
+
+**Tool Usage Compliance:**
+- ✅ PASS: Agent uses MCP tools for all CRUD operations (create, read, update, delete)
+- ✅ PASS: Agent validates tool responses before using data
+- ✅ PASS: Agent handles tool errors gracefully with user-friendly messages
+- ✅ PASS: Agent passes authenticated user_id to all tool calls
+- ❌ FAIL: Agent bypasses tool layer for any database operation
+
+**Action Confirmation:**
+- ✅ PASS: Deleting todo shows confirmation prompt before execution
+- ✅ PASS: Bulk operations (>1 item) show confirmation with affected count
+- ✅ PASS: Confirmation includes clear description of action
+- ✅ PASS: User can cancel destructive actions
+- ❌ FAIL: Destructive action executes without user confirmation
+
+### Conversation Persistence Verification
+
+**Database Schema:**
+- ✅ PASS: `conversations` table exists with columns: id, user_id, title, created_at, updated_at
+- ✅ PASS: `messages` table exists with columns: id, conversation_id, role, content, created_at
+- ✅ PASS: `tool_calls` table exists with columns: id, message_id, tool_name, input, output, created_at
+- ✅ PASS: Foreign keys defined: messages.conversation_id → conversations.id
+- ✅ PASS: Foreign keys defined: tool_calls.message_id → messages.id
+- ✅ PASS: Indexes exist on user_id and conversation_id columns
+
+**History Reconstruction:**
+- ✅ PASS: Chat endpoint queries database for full conversation history
+- ✅ PASS: Messages returned in chronological order (oldest first)
+- ✅ PASS: Tool calls included in message history with results
+- ✅ PASS: Conversation context includes all previous messages
+- ❌ FAIL: Chat endpoint uses in-memory history instead of database
+
+**Cross-Request Consistency:**
+- ✅ PASS: Request 1 sends message → Request 2 sees that message in history
+- ✅ PASS: Request 1 executes tool → Request 2 sees tool result in history
+- ✅ PASS: Multiple concurrent requests to same conversation don't corrupt data
+- ❌ FAIL: Messages or tool results lost between requests
+
+### Code Hygiene Verification (Phase III)
+
+**No Unused Files:**
+- ✅ PASS: No unused Python files in backend/src/
+- ✅ PASS: No unused TypeScript files in frontend/src/
+- ✅ PASS: No commented-out code blocks (>10 lines)
+- ✅ PASS: No TODO comments without corresponding GitHub issues
+- ❌ FAIL: Unused imports, functions, or files detected
+
+**Modular Structure:**
+- ✅ PASS: MCP tools in separate module (e.g., backend/src/mcp_tools/)
+- ✅ PASS: Chat logic in separate module (e.g., backend/src/chat/)
+- ✅ PASS: Database models in separate module (e.g., backend/src/models/)
+- ✅ PASS: Each module has single responsibility (no god files >500 lines)
+- ✅ PASS: Clear separation: routes → services → tools → database
+- ❌ FAIL: Mixed concerns (chat + tools + database in one file)
+
+**Automated Checks:**
+```bash
+# Unused imports check
+✅ PASS: pylint --disable=all --enable=unused-import backend/src/
+✅ PASS: No unused imports detected
+
+# Code complexity check
+✅ PASS: All functions <50 lines (except generated code)
+✅ PASS: All files <500 lines (except migrations)
+✅ PASS: Cyclomatic complexity <10 per function
+
+# Naming conventions
+✅ PASS: All Python files use snake_case.py
+✅ PASS: All TypeScript files use kebab-case.tsx or PascalCase.tsx (components)
+✅ PASS: All functions/variables use snake_case (Python) or camelCase (TypeScript)
+```
 
 ### API Contract Verification
 
@@ -321,9 +592,9 @@ accidental exposure of credentials.
 
 ## Definition of Done
 
-### Hackathon MVP Criteria
+### Phase II: Hackathon MVP Criteria (Web Application)
 
-The project is considered **DONE** when all of the following are met:
+The Phase II project is considered **DONE** when all of the following are met:
 
 **Functional Requirements:**
 1. ✅ User can sign up with email/password (Better Auth)
@@ -361,8 +632,68 @@ The project is considered **DONE** when all of the following are met:
 3. ✅ Database migrations applied successfully
 4. ✅ CORS configured for frontend-backend communication
 
+### Phase III: AI-Powered Chatbot Criteria
+
+The Phase III project is considered **DONE** when all Phase II criteria are met PLUS:
+
+**Functional Requirements:**
+1. ✅ User can start a new chat conversation
+2. ✅ User can send messages to AI chatbot
+3. ✅ Chatbot can list user's todos via MCP tool
+4. ✅ Chatbot can create new todos via MCP tool
+5. ✅ Chatbot can mark todos complete/incomplete via MCP tool
+6. ✅ Chatbot can delete todos via MCP tool (with confirmation)
+7. ✅ User can view chat history (persisted across sessions)
+8. ✅ User cannot access other users' conversations
+
+**Technical Requirements:**
+1. ✅ All chat endpoints require valid JWT authentication
+2. ✅ All MCP tools are stateless and database-backed
+3. ✅ All MCP tools have explicit Pydantic input/output schemas
+4. ✅ All MCP tools enforce user_id ownership
+5. ✅ Conversation history rebuilt from database on every request
+6. ✅ Server restart does NOT break ongoing conversations
+7. ✅ Agent uses MCP tools for all todo operations (no direct DB access)
+8. ✅ Destructive actions require user confirmation
+
+**Stateless Architecture Requirements:**
+1. ✅ No in-memory chat history storage
+2. ✅ No in-memory tool state or caching
+3. ✅ All chat messages persisted to database before response
+4. ✅ All tool execution results persisted to database
+5. ✅ Database is single source of truth for conversation state
+
+**MCP Tool Requirements:**
+1. ✅ All tools have Pydantic input models with user_id field
+2. ✅ All tools have Pydantic output models with success field
+3. ✅ All tools filter database queries by user_id
+4. ✅ All tools return structured JSON (not plain text)
+5. ✅ Tool schemas documented in code and API docs
+
+**Security Requirements:**
+1. ✅ All Phase III security verification tests pass
+2. ✅ Chat endpoints return 401 when JWT missing/invalid
+3. ✅ Tool calls with mismatched user_id return 403
+4. ✅ Conversation history filtered by authenticated user_id
+5. ✅ No cross-user conversation access possible
+
+**Code Hygiene Requirements:**
+1. ✅ No unused files or artifacts in codebase
+2. ✅ Modular structure (tools, chat, models in separate modules)
+3. ✅ No commented-out code blocks (>10 lines)
+4. ✅ All functions <50 lines (except generated code)
+5. ✅ All files <500 lines (except migrations)
+
+**Documentation Requirements:**
+1. ✅ Phase III feature spec exists
+2. ✅ Phase III implementation plan exists
+3. ✅ Phase III task list exists
+4. ✅ MCP tool schemas documented
+5. ✅ Chat API endpoints documented
+
 ### Out of Scope (Explicitly NOT Required)
 
+**Phase II (Web Application):**
 - ❌ User profile editing
 - ❌ Password reset functionality
 - ❌ Email verification
@@ -375,44 +706,74 @@ The project is considered **DONE** when all of the following are met:
 - ❌ CI/CD pipeline
 - ❌ Production deployment
 
+**Phase III (AI Chatbot):**
+- ❌ Voice input/output
+- ❌ Multi-language support
+- ❌ Conversation branching or forking
+- ❌ Exporting chat history
+- ❌ Sharing conversations with other users
+- ❌ Custom AI personalities or system prompts
+- ❌ Image/file uploads in chat
+- ❌ Advanced NLP features (sentiment analysis, summarization)
+- ❌ Integration with external services (calendar, email, etc.)
+- ❌ Automated tests for chatbot responses
+- ❌ Performance benchmarking or load testing
+
 ## Technology Stack Requirements
 
 ### Mandatory Technologies
 
-**Frontend Stack:**
+**Frontend Stack (Phase II & III):**
 - Framework: Next.js 16+ (App Router only)
 - Styling: Tailwind CSS
 - Language: TypeScript
 - State Management: React hooks (useState, useContext)
 - Data Fetching: Server Components with async/await
 
-**Backend Stack:**
+**Backend Stack (Phase II & III):**
 - Framework: Python FastAPI
 - ORM: SQLModel
 - Validation: Pydantic (included in SQLModel)
 - Authentication: python-jose for JWT
 - Server: Uvicorn (ASGI server)
 
-**Database Stack:**
+**Database Stack (Phase II & III):**
 - Database: Neon Serverless PostgreSQL
 - Connection Pooling: PgBouncer (recommended)
 - Migrations: Alembic
 - Query Builder: SQLModel select()
 
-**Authentication Stack:**
+**Authentication Stack (Phase II & III):**
 - Frontend: Better Auth
 - Backend: JWT token verification
 - Token Format: JSON Web Tokens (JWT)
 - Algorithm: HS256 (HMAC with SHA-256)
 
+**AI Chatbot Stack (Phase III):**
+- AI Provider: Anthropic Claude API
+- Models: claude-3-5-sonnet-20241022 (primary) or claude-3-5-haiku-20241022 (fast responses)
+- SDK: anthropic Python package
+- Tool Protocol: Model Context Protocol (MCP)
+- Tool Schemas: Pydantic models for input/output validation
+- Streaming: Server-Sent Events (SSE) for real-time responses
+- Conversation Storage: PostgreSQL (conversations, messages, tool_calls tables)
+
 ### Prohibited Technologies
 
+**General Prohibitions:**
 - No other frontend frameworks (React without Next.js, Vue, Angular, etc.)
 - No other CSS frameworks (Bootstrap, Material-UI, etc.)
 - No other backend frameworks (Django, Flask, Express, etc.)
 - No other ORMs (raw SQLAlchemy, Prisma, TypeORM, etc.)
 - No other databases (MongoDB, MySQL, SQLite, etc.)
 - No session-based authentication (only JWT)
+
+**Phase III Prohibitions:**
+- No other AI providers (OpenAI, Cohere, etc.) - only Anthropic Claude
+- No LangChain or similar frameworks (use direct Claude SDK + MCP)
+- No in-memory conversation storage (Redis, Memcached, etc.)
+- No WebSocket-based chat (use HTTP + SSE for streaming)
+- No custom tool protocols (only MCP standard)
 
 ## Development Workflow
 
@@ -473,11 +834,25 @@ The project is considered **DONE** when all of the following are met:
 
 ### Multi-Agent Coordination
 
-For features spanning multiple layers, coordinate agents in this order:
+**Phase II (Web Application) - Coordinate agents in this order:**
 1. **Database Agent** → Design schema and tables
 2. **Backend Agent** → Create API endpoints with database integration
 3. **Auth Agent** → Add authentication/authorization to endpoints
 4. **Frontend Agent** → Build UI that consumes the APIs
+
+**Phase III (AI Chatbot) - Coordinate agents in this order:**
+1. **Database Agent** → Design conversation/message/tool_calls schema
+2. **Backend Agent** → Create MCP tool endpoints with explicit schemas
+3. **Backend Agent** → Create chat endpoint with Claude SDK integration
+4. **Auth Agent** → Add JWT authentication to chat and tool endpoints
+5. **Frontend Agent** → Build chat UI with streaming support
+6. **Code Quality Agent** → Review for stateless architecture compliance
+
+**Phase III Specific Guidelines:**
+- MCP tools MUST be implemented before chat endpoint (tools are dependencies)
+- All tools MUST be tested independently before agent integration
+- Stateless architecture MUST be verified after each implementation
+- Conversation persistence MUST be tested with server restart scenarios
 
 ## Governance
 
@@ -521,4 +896,4 @@ All constitution changes MUST be version controlled with:
 - Security audits MUST be performed for authentication code
 - Constitution violations MUST be treated as critical issues
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-03 | **Last Amended**: 2026-02-03
+**Version**: 1.2.0 | **Ratified**: 2026-02-03 | **Last Amended**: 2026-02-09

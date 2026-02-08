@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "update_task Tool Contract",
+  "description": "MCP tool for updating task title and/or description",
+  "type": "object",
+  "properties": {
+    "input": {
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Authenticated user ID (required)",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "integer",
+          "description": "Task ID to update (required)",
+          "minimum": 1
+        },
+        "new_title": {
+          "type": ["string", "null"],
+          "description": "New task title (optional)",
+          "minLength": 1,
+          "maxLength": 500,
+          "default": null
+        },
+        "new_description": {
+          "type": ["string", "null"],
+          "description": "New task description (optional)",
+          "maxLength": 2000,
+          "default": null
+        }
+      },
+      "required": ["user_id", "task_id"],
+      "additionalProperties": false,
+      "anyOf": [
+        {"required": ["new_title"]},
+        {"required": ["new_description"]}
+      ]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Whether the operation succeeded"
+        },
+        "data": {
+          "type": ["object", "null"],
+          "properties": {
+            "task": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "integer"},
+                "user_id": {"type": "string"},
+                "title": {"type": "string"},
+                "description": {"type": ["string", "null"]},
+                "completed": {"type": "boolean"},
+                "priority": {"type": ["string", "null"]},
+                "due_date": {"type": ["string", "null"], "format": "date-time"},
+                "created_at": {"type": "string", "format": "date-time"},
+                "updated_at": {"type": "string", "format": "date-time"}
+              },
+              "required": ["id", "user_id", "title", "completed", "created_at", "updated_at"]
+            }
+          },
+          "required": ["task"]
+        },
+        "error": {
+          "type": ["string", "null"],
+          "description": "Human-readable error message (present on failure)"
+        },
+        "error_code": {
+          "type": ["string", "null"],
+          "description": "Machine-readable error code (present on failure)",
+          "enum": ["INVALID_USER_ID", "TASK_NOT_FOUND", "VALIDATION_ERROR", "DATABASE_ERROR", "INTERNAL_ERROR", null]
+        }
+      },
+      "required": ["success"]
+    }
+  },
+  "examples": [
+    {
+      "input": {
+        "user_id": "user123",
+        "task_id": 1,
+        "new_title": "Buy organic milk",
+        "new_description": null
+      },
+      "output": {
+        "success": true,
+        "data": {
+          "task": {
+            "id": 1,
+            "user_id": "user123",
+            "title": "Buy organic milk",
+            "description": "Get 2% milk from store",
+            "completed": false,
+            "priority": "medium",
+            "due_date": "2026-02-10T10:00:00Z",
+            "created_at": "2026-02-09T10:00:00Z",
+            "updated_at": "2026-02-09T10:40:00Z"
+          }
+        },
+        "error": null,
+        "error_code": null
+      }
+    },
+    {
+      "input": {
+        "user_id": "user123",
+        "task_id": 1,
+        "new_title": null,
+        "new_description": null
+      },
+      "output": {
+        "success": false,
+        "data": null,
+        "error": "At least one of new_title or new_description must be provided",
+        "error_code": "VALIDATION_ERROR"
+      }
+    }
+  ]
+}
