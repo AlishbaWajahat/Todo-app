@@ -1,5 +1,5 @@
 ---
-description: "Task list for Chat UI & End-to-End Integration"
+description: "Task list for Chat UI & End-to-End Integration using OpenAI ChatKit"
 ---
 
 # Tasks: Chat UI & End-to-End Integration
@@ -8,6 +8,8 @@ description: "Task list for Chat UI & End-to-End Integration"
 **Prerequisites**: plan.md (required), spec.md (required for user stories)
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+**Approach**: Using **OpenAI ChatKit** (`@openai/chatkit-react`) instead of custom components. ChatKit handles message rendering, state management, auto-scroll, loading states, and error display automatically.
 
 **Tests**: Tests are NOT included as they were not requested in the feature specification.
 
@@ -26,24 +28,25 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Project initialization and basic structure for chat feature
+**Purpose**: Install ChatKit and verify prerequisites
 
-- [ ] T001 Create chat directory structure: `frontend/src/app/chat/`, `frontend/src/components/chat/`, `frontend/src/types/`
+- [ ] T001 Install ChatKit package: Run `npm install @openai/chatkit-react` in frontend directory
 - [ ] T002 Verify Next.js 16.0.1 and React 18+ dependencies are installed in frontend/package.json
 - [ ] T003 [P] Verify existing JWT token management implementation in frontend/src/lib/api.ts or frontend/src/lib/auth.ts
+- [ ] T004 [P] Create chat directory structure: `frontend/src/app/chat/`, `frontend/src/components/chat/`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+**Purpose**: Core ChatKit integration that MUST be complete before ANY user story can be implemented
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create TypeScript types for chat messages in frontend/src/types/chat.ts (ChatMessage, ChatSession, AgentRequest, AgentResponse)
-- [ ] T005 Create chat API client in frontend/src/lib/chat-api.ts with sendMessage function that calls POST /api/v1/agent/chat with JWT token
-- [ ] T006 Create useChat hook in frontend/src/hooks/useChat.ts for managing chat state (messages, isLoading, error, sendMessage)
-- [ ] T007 Verify agent endpoint is accessible at http://localhost:8000/api/v1/agent/chat by making a test request
+- [ ] T005 Verify agent endpoint is accessible at http://localhost:8000/api/v1/agent/chat by making a test request with JWT token
+- [ ] T006 Create custom fetch function in frontend/src/lib/chatkit-fetch.ts that injects JWT token into ChatKit requests (Authorization: Bearer header)
+- [ ] T007 Create ChatKitWrapper component in frontend/src/components/chat/ChatKitWrapper.tsx that initializes useChatKit with custom fetch and agent endpoint
+- [ ] T008 Configure ChatKit in ChatKitWrapper: set api.url to agent endpoint, disable streaming (single response mode), enable history (in-memory only)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -57,16 +60,15 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 ### Implementation for User Story 1
 
-- [ ] T008 [P] Create Message component in frontend/src/components/chat/Message.tsx to display individual messages (user/agent, text, timestamp)
-- [ ] T009 [P] Create LoadingIndicator component in frontend/src/components/chat/LoadingIndicator.tsx to show "Agent is thinking..." state
-- [ ] T010 Create MessageList component in frontend/src/components/chat/MessageList.tsx with auto-scroll to latest message
-- [ ] T011 Create MessageInput component in frontend/src/components/chat/MessageInput.tsx with text input, send button, and Enter key support
-- [ ] T012 Create ChatContainer component in frontend/src/components/chat/ChatContainer.tsx that integrates MessageList, MessageInput, and useChat hook
-- [ ] T013 Create chat page route in frontend/src/app/chat/page.tsx that renders ChatContainer with authentication check
+- [ ] T009 Configure ChatKit startScreen in ChatKitWrapper with greeting: "How can I help you with your tasks today?" and prompts: ["Show my tasks", "Create a task"]
+- [ ] T010 Configure ChatKit composer in ChatKitWrapper with placeholder: "Ask me anything about your tasks..."
+- [ ] T011 Configure ChatKit header and history settings: header disabled, history enabled (in-memory)
+- [ ] T012 Create chat page route in frontend/src/app/chat/page.tsx that renders ChatKitWrapper with authentication check
+- [ ] T013 Use Next.js dynamic import in chat page to load ChatKitWrapper (SSR-safe: `dynamic(() => import('@/components/chat/ChatKitWrapper'), { ssr: false })`)
 - [ ] T014 Add navigation link to chat page in existing layout/navigation component (frontend/src/app/layout.tsx or frontend/src/components/Navigation.tsx)
-- [ ] T015 Implement auto-scroll behavior in MessageList to scroll to latest message when new messages arrive
-- [ ] T016 Implement loading indicator display in ChatContainer when isLoading is true
-- [ ] T017 Test basic chat flow: send "Hello" message and verify agent responds
+- [ ] T015 Test basic chat flow: send "Hello" message and verify agent responds with a message
+- [ ] T016 Test ChatKit auto-scroll: send multiple messages and verify chat scrolls to latest message automatically
+- [ ] T017 Test ChatKit loading indicator: verify "Agent is thinking..." appears while waiting for response
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can send messages and receive responses
 
@@ -81,10 +83,10 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Implementation for User Story 2
 
 - [ ] T018 [US2] Verify agent endpoint correctly handles "create task" intent by testing with sample messages like "Create a task to buy milk"
-- [ ] T019 [US2] Add user feedback for task creation success in Message component (e.g., highlight confirmation messages)
-- [ ] T020 [US2] Test task creation with various formats: "Create a task to X", "Add a task X", "Remind me to X"
-- [ ] T021 [US2] Test task creation with priority: "Add a high priority task to finish report"
-- [ ] T022 [US2] Test task creation with description: "Remind me to call dentist with description: annual checkup"
+- [ ] T019 [US2] Test task creation with various formats: "Create a task to X", "Add a task X", "Remind me to X"
+- [ ] T020 [US2] Test task creation with priority: "Add a high priority task to finish report"
+- [ ] T021 [US2] Test task creation with description: "Remind me to call dentist with description: annual checkup"
+- [ ] T022 [US2] Verify ChatKit displays agent's confirmation message correctly (e.g., "Task created: Buy milk")
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work - users can create tasks via chat
 
@@ -99,11 +101,11 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Implementation for User Story 3
 
 - [ ] T023 [US3] Verify agent endpoint correctly handles "list tasks" intent by testing with "Show my tasks"
-- [ ] T024 [US3] Add formatting for task lists in Message component (e.g., numbered list, checkboxes for completion status)
-- [ ] T025 [US3] Test viewing all tasks: "Show my tasks"
-- [ ] T026 [US3] Test filtering by priority: "Show my high priority tasks"
-- [ ] T027 [US3] Test filtering by completion: "Show my completed tasks"
-- [ ] T028 [US3] Test empty state: "Show my tasks" when user has no tasks
+- [ ] T024 [US3] Test viewing all tasks: "Show my tasks"
+- [ ] T025 [US3] Test filtering by priority: "Show my high priority tasks"
+- [ ] T026 [US3] Test filtering by completion: "Show my completed tasks"
+- [ ] T027 [US3] Test empty state: "Show my tasks" when user has no tasks
+- [ ] T028 [US3] Verify ChatKit displays task lists correctly with proper formatting
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work - users can create and view tasks via chat
 
@@ -118,11 +120,11 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Implementation for User Story 4
 
 - [ ] T029 [US4] Verify agent endpoint correctly handles "complete task" intent by testing with "Complete task 1"
-- [ ] T030 [US4] Add user feedback for task completion success in Message component
-- [ ] T031 [US4] Test completing task by ID: "Complete task 5"
-- [ ] T032 [US4] Test completing task by title: "Mark 'buy groceries' as done"
-- [ ] T033 [US4] Test uncompleting task: "Undo completion of task 3"
-- [ ] T034 [US4] Test error handling for non-existent task: "Complete task 999"
+- [ ] T030 [US4] Test completing task by ID: "Complete task 5"
+- [ ] T031 [US4] Test completing task by title: "Mark 'buy groceries' as done"
+- [ ] T032 [US4] Test uncompleting task: "Undo completion of task 3"
+- [ ] T033 [US4] Test error handling for non-existent task: "Complete task 999"
+- [ ] T034 [US4] Verify ChatKit displays agent's confirmation message correctly
 
 **Checkpoint**: At this point, User Stories 1-4 should all work - users can create, view, and complete tasks via chat
 
@@ -137,10 +139,10 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Implementation for User Story 5
 
 - [ ] T035 [US5] Verify agent endpoint correctly handles "update task" intent by testing with "Change task 1 to 'New title'"
-- [ ] T036 [US5] Add user feedback for task update success in Message component
-- [ ] T037 [US5] Test updating task title by ID: "Change task 3 to 'Buy organic milk'"
-- [ ] T038 [US5] Test updating task description: "Update 'Call dentist' description to 'Annual checkup appointment'"
-- [ ] T039 [US5] Test error handling for non-existent task: "Update task 999"
+- [ ] T036 [US5] Test updating task title by ID: "Change task 3 to 'Buy organic milk'"
+- [ ] T037 [US5] Test updating task description: "Update 'Call dentist' description to 'Annual checkup appointment'"
+- [ ] T038 [US5] Test error handling for non-existent task: "Update task 999"
+- [ ] T039 [US5] Verify ChatKit displays agent's confirmation message correctly
 
 **Checkpoint**: At this point, User Stories 1-5 should all work - users can create, view, complete, and update tasks via chat
 
@@ -157,11 +159,11 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Implementation for User Story 6
 
 - [ ] T040 [US6] Verify agent endpoint correctly handles "delete task" intent by testing with "Delete task 1"
-- [ ] T041 [US6] Add user feedback for task deletion success in Message component
-- [ ] T042 [US6] Test deleting task by ID: "Delete task 5"
-- [ ] T043 [US6] Test deleting task by title: "Remove 'buy groceries'"
-- [ ] T044 [US6] Test error handling for non-existent task: "Delete task 999"
-- [ ] T045 [US6] Document DELETE operation limitation in chat UI (e.g., help text or error message guidance)
+- [ ] T041 [US6] Test deleting task by ID: "Delete task 5"
+- [ ] T042 [US6] Test deleting task by title: "Remove 'buy groceries'"
+- [ ] T043 [US6] Test error handling for non-existent task: "Delete task 999"
+- [ ] T044 [US6] Document DELETE operation limitation in chat UI (e.g., help text or error message guidance)
+- [ ] T045 [US6] Verify ChatKit displays agent's confirmation or error message correctly
 
 **Checkpoint**: At this point, User Stories 1-6 should all work - users can perform all CRUD operations via chat
 
@@ -175,16 +177,16 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 ### Implementation for User Story 7
 
-- [ ] T046 [US7] Implement network error handling in chat-api.ts with try-catch and user-friendly error messages
-- [ ] T047 [US7] Implement timeout handling in chat-api.ts (30 second timeout with error message)
-- [ ] T048 [US7] Implement authentication error handling in useChat hook (detect 401 responses and prompt re-login)
-- [ ] T049 [US7] Add error message display in ChatContainer component (show error state with retry option)
-- [ ] T050 [US7] Implement input validation in MessageInput (prevent empty messages, limit to 1000 characters)
-- [ ] T051 [US7] Test network error: disconnect backend and send message, verify error message displays
-- [ ] T052 [US7] Test invalid command: send "Make me coffee" and verify agent responds with helpful guidance
-- [ ] T053 [US7] Test authentication expiry: simulate expired token and verify re-login prompt
-- [ ] T054 [US7] Test server error: simulate 500 error and verify graceful error handling
-- [ ] T055 [US7] Sanitize agent responses before rendering to prevent XSS attacks (use DOMPurify or similar)
+- [ ] T046 [US7] Implement network error handling in custom fetch function (chatkit-fetch.ts) with try-catch and user-friendly error messages
+- [ ] T047 [US7] Implement timeout handling in custom fetch function (30 second timeout with AbortController)
+- [ ] T048 [US7] Implement authentication error handling in custom fetch: detect 401 responses and redirect to login
+- [ ] T049 [US7] Implement server error handling in custom fetch: detect 500 responses and show user-friendly message
+- [ ] T050 [US7] Test network error: disconnect backend and send message, verify ChatKit displays error message
+- [ ] T051 [US7] Test invalid command: send "Make me coffee" and verify agent responds with helpful guidance
+- [ ] T052 [US7] Test authentication expiry: simulate expired token and verify redirect to login
+- [ ] T053 [US7] Test server error: simulate 500 error and verify ChatKit displays graceful error message
+- [ ] T054 [US7] Install DOMPurify: Run `npm install dompurify @types/dompurify` for extra XSS protection
+- [ ] T055 [US7] Sanitize agent responses in custom fetch before returning to ChatKit (use DOMPurify to strip HTML tags)
 
 **Checkpoint**: At this point, all error scenarios should be handled gracefully with user-friendly messages
 
@@ -200,19 +202,20 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 - [ ] T056 [P] [US8] Extract existing theme variables from frontend/tailwind.config.js and document colors, fonts, spacing
 - [ ] T057 [P] [US8] Review existing UI components in frontend/src/components/ui/ to identify reusable patterns
-- [ ] T058 [US8] Apply theme colors to Message component (user messages, agent messages, backgrounds)
-- [ ] T059 [US8] Apply theme fonts and typography to all chat components
-- [ ] T060 [US8] Apply theme spacing and padding to ChatContainer, MessageList, MessageInput
-- [ ] T061 [US8] Style LoadingIndicator to match existing loading states in the application
-- [ ] T062 [US8] Style send button in MessageInput to match existing button styles
-- [ ] T063 [US8] Implement responsive design for mobile (320px width minimum) in ChatContainer
-- [ ] T064 [US8] Implement responsive design for tablet (768px width) in ChatContainer
-- [ ] T065 [US8] Test chat UI on mobile device and verify responsiveness
-- [ ] T066 [US8] Test chat UI on tablet device and verify responsiveness
-- [ ] T067 [US8] Test chat UI on desktop and verify theme consistency with other pages
-- [ ] T068 [US8] Add accessibility attributes (ARIA labels, keyboard navigation) to chat components
-- [ ] T069 [US8] Optimize message rendering performance for 100+ messages (consider virtualization if needed)
-- [ ] T070 [US8] Conduct visual QA: compare chat page side-by-side with dashboard page for theme consistency
+- [ ] T058 [US8] Create ChatKit custom styles in frontend/src/components/chat/ChatKitWrapper.module.css
+- [ ] T059 [US8] Apply theme colors to ChatKit via CSS custom properties (--chatkit-primary, --chatkit-background, etc.)
+- [ ] T060 [US8] Apply theme fonts and typography to ChatKit components via CSS
+- [ ] T061 [US8] Apply theme spacing and padding to ChatKit container via CSS
+- [ ] T062 [US8] Style ChatKit loading indicator to match existing loading states in the application
+- [ ] T063 [US8] Style ChatKit composer (input area) to match existing input/button styles
+- [ ] T064 [US8] Implement responsive design for mobile (320px width minimum) via CSS media queries
+- [ ] T065 [US8] Implement responsive design for tablet (768px width) via CSS media queries
+- [ ] T066 [US8] Test chat UI on mobile device and verify responsiveness
+- [ ] T067 [US8] Test chat UI on tablet device and verify responsiveness
+- [ ] T068 [US8] Test chat UI on desktop and verify theme consistency with other pages
+- [ ] T069 [US8] Add accessibility attributes to ChatKitWrapper (ARIA labels for screen readers)
+- [ ] T070 [US8] Test ChatKit performance with 100+ messages (verify no lag or memory issues)
+- [ ] T071 [US8] Conduct visual QA: compare chat page side-by-side with dashboard page for theme consistency
 
 **Checkpoint**: All user stories should now be complete with polished, theme-consistent UI
 
@@ -222,16 +225,16 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 **Purpose**: Final improvements and validation
 
-- [ ] T071 [P] Add timestamps to messages in Message component (optional enhancement per FR-015)
-- [ ] T072 [P] Add "Clear chat" button to ChatContainer to reset message history (optional enhancement)
-- [ ] T073 Code cleanup: remove any unused imports, console.logs, or commented code
-- [ ] T074 Verify no mock data or temporary files remain in codebase
-- [ ] T075 Update navigation to highlight active chat page when user is on /chat
-- [ ] T076 Add loading state to chat page while verifying authentication
-- [ ] T077 Test full end-to-end workflow: login → navigate to chat → create task → view tasks → complete task → delete task
-- [ ] T078 Verify all 20 functional requirements from spec.md are implemented
-- [ ] T079 Verify all 10 success criteria from spec.md are met
-- [ ] T080 Document any known limitations or issues in specs/006-chat-ui-integration/README.md (if needed)
+- [ ] T072 [P] Add "Clear chat" button to ChatKitWrapper to reset message history (optional enhancement)
+- [ ] T073 [P] Add timestamps to messages via ChatKit configuration (optional enhancement per FR-015)
+- [ ] T074 Code cleanup: remove any unused imports, console.logs, or commented code
+- [ ] T075 Verify no mock data or temporary files remain in codebase
+- [ ] T076 Update navigation to highlight active chat page when user is on /chat
+- [ ] T077 Add loading state to chat page while verifying authentication
+- [ ] T078 Test full end-to-end workflow: login → navigate to chat → create task → view tasks → complete task → delete task
+- [ ] T079 Verify all 20 functional requirements from spec.md are implemented
+- [ ] T080 Verify all 10 success criteria from spec.md are met
+- [ ] T081 Document any known limitations or issues in specs/006-chat-ui-integration/README.md (if needed)
 
 ---
 
@@ -266,7 +269,7 @@ description: "Task list for Chat UI & End-to-End Integration"
 ### Parallel Opportunities
 
 - All Setup tasks marked [P] can run in parallel
-- All Foundational tasks can run sequentially (they build on each other)
+- Foundational tasks should run sequentially (they build on each other)
 - Once US1 (Basic Chat Interaction) is complete, US2-US6 can potentially run in parallel as they all add functionality to the same chat interface
 - US7 (Error Handling) and US8 (Theme Consistency) can run in parallel with each other after US1 is complete
 - All Polish tasks marked [P] can run in parallel
@@ -277,8 +280,8 @@ description: "Task list for Chat UI & End-to-End Integration"
 
 ### MVP First (User Story 1 Only)
 
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
+1. Complete Phase 1: Setup (install ChatKit)
+2. Complete Phase 2: Foundational (ChatKit integration)
 3. Complete Phase 3: User Story 1 (Basic Chat Interaction)
 4. **STOP and VALIDATE**: Test User Story 1 independently
 5. Deploy/demo if ready
@@ -314,9 +317,44 @@ Given that all user stories build on the same chat interface:
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently testable after US1 is complete
+- **ChatKit handles**: message rendering, state management, auto-scroll, loading states, error display
+- **We handle**: JWT authentication, custom fetch, theme styling, connecting to agent endpoint
 - Backend agent endpoint already exists - no backend changes needed
 - DELETE operation has known 80% success rate (acceptable per spec)
 - Chat history is in-memory only (no database persistence)
 - No streaming responses (single response per request)
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
+
+---
+
+## Key ChatKit Configuration
+
+```typescript
+// frontend/src/components/chat/ChatKitWrapper.tsx
+import { useChatKit } from '@openai/chatkit-react';
+import { customFetch } from '@/lib/chatkit-fetch';
+
+const { control } = useChatKit({
+  api: {
+    url: 'http://localhost:8000/api/v1/agent/chat',
+    fetch: customFetch, // Inject JWT token
+  },
+  startScreen: {
+    greeting: 'How can I help you with your tasks today?',
+    prompts: [
+      { label: 'Show my tasks', prompt: 'Show my tasks' },
+      { label: 'Create a task', prompt: 'Create a task to...' },
+    ],
+  },
+  composer: {
+    placeholder: 'Ask me anything about your tasks...',
+  },
+  header: { enabled: false },
+  history: { enabled: true }, // In-memory only
+});
+```
+
+**Total Tasks**: 81 (reduced from 80 due to ChatKit simplification)
+**Estimated Complexity**: Medium (ChatKit handles most complexity)
+**MVP Path**: Phase 1 + Phase 2 + Phase 3 = 17 tasks = Working chat UI

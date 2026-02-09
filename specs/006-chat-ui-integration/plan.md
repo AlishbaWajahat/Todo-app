@@ -7,28 +7,31 @@
 
 ## Summary
 
-Build a conversational chat interface that integrates Frontend (Next.js) → Agent (stateless) → Backend APIs for natural language task management. Users can create, view, update, complete, and delete todos via chat without leaving the conversational interface. The implementation embeds a chat UI into the existing frontend layout, connects to the stateless agent endpoint (POST /api/v1/agent/chat), and ensures seamless end-to-end flow with real backend data. Chat messages are maintained in-memory only (no persistence), and the UI matches the existing application theme for visual consistency.
+Build a conversational chat interface using **OpenAI ChatKit** that integrates Frontend (Next.js) → Agent (stateless) → Backend APIs for natural language task management. Users can create, view, update, complete, and delete todos via chat without leaving the conversational interface. The implementation integrates ChatKit into the existing Next.js App Router layout, connects to the stateless agent endpoint (POST /api/v1/agent/chat), and ensures seamless end-to-end flow with real backend data. Chat messages are maintained in-memory only (no persistence), and ChatKit is styled to match the existing application theme for visual consistency.
 
 **Key Approach**:
-1. Embed chat UI component into existing Next.js App Router layout
-2. Define minimal chat message schema (user_message, agent_response, status)
-3. Connect chat input to agent endpoint with JWT token forwarding
-4. Map agent intents to MCP tools (create/read/update/delete todos)
-5. Ensure backend responses sync UI state correctly
-6. Implement graceful error handling (auth, validation, network)
-7. Validate end-to-end flow with real backend data
-8. Remove unused UI components, mocks, or temp files
+1. Install and integrate OpenAI ChatKit (`@openai/chatkit-react`) into Next.js App Router
+2. Configure ChatKit with custom fetch to connect to agent endpoint with JWT token forwarding
+3. Configure ChatKit for NO streaming (single response per request) and NO database persistence (in-memory only)
+4. Style ChatKit with CSS modules or Tailwind to match existing application theme
+5. Map agent intents to MCP tools (create/read/update/delete todos) - backend already handles this
+6. Ensure backend responses sync UI state correctly via ChatKit's built-in state management
+7. Implement graceful error handling in custom fetch (auth, validation, network, timeout)
+8. Validate end-to-end flow with real backend data
+9. Test ChatKit integration on mobile, tablet, and desktop
 
 ## Technical Context
 
 **Language/Version**: TypeScript 5.x (frontend), Python 3.11+ (backend - existing)
 **Primary Dependencies**:
 - Frontend: Next.js 16.0.1 (App Router), React 18+, Tailwind CSS, TypeScript
+- **ChatKit**: `@openai/chatkit-react` (OpenAI's official chat UI library)
+- **Sanitization**: DOMPurify for extra XSS protection
 - Backend: FastAPI (existing), SQLModel (existing), OpenAI Agent SDK 0.8.1 (existing)
 
 **Storage**:
 - Database: Neon Serverless PostgreSQL (existing - for task data)
-- Chat State: In-memory only (no persistence per spec requirements)
+- Chat State: In-memory only via ChatKit (no persistence per spec requirements)
 - Authentication: JWT tokens in localStorage/cookies
 
 **Testing**:
@@ -42,12 +45,19 @@ Build a conversational chat interface that integrates Frontend (Next.js) → Age
 **Performance Goals**:
 - Agent response latency: <2 seconds (p95)
 - Chat page load time: <1 second
-- Message rendering: <50ms
-- Auto-scroll performance: 60fps smooth scrolling
+- ChatKit rendering: <50ms per message
+- Auto-scroll performance: 60fps smooth scrolling (ChatKit built-in)
 
 **Constraints**:
 - MUST use stateless agent architecture (no state between requests)
-- MUST NOT persist chat history to database (in-memory only)
+- MUST NOT persist chat history to database (in-memory only via ChatKit)
+- MUST use OpenAI ChatKit for UI (no custom components)
+- MUST configure ChatKit for NO streaming (single response per request)
+- MUST match existing application theme via ChatKit styling
+- MUST pass JWT token with every agent request via custom fetch
+- MUST handle DELETE operation limitation (80% success rate acceptable)
+- MUST reuse existing UI components where possible (navigation, layout)
+- MUST NOT implement streaming responses (single response per request)
 - MUST match existing application theme (colors, fonts, spacing)
 - MUST pass JWT token with every agent request
 - MUST handle DELETE operation limitation (80% success rate acceptable)
@@ -180,39 +190,33 @@ frontend/                         # Existing frontend (MODIFICATIONS NEEDED)
 │   │   ├── (auth)/               # Feature 003 - Auth pages (EXISTING)
 │   │   ├── dashboard/            # Feature 003 - Dashboard (EXISTING)
 │   │   ├── chat/                 # NEW - Chat page route
-│   │   │   ├── page.tsx          # Chat page component
-│   │   │   └── layout.tsx        # Chat layout (optional)
+│   │   │   └── page.tsx          # Chat page with ChatKit integration
 │   │   └── layout.tsx            # Root layout (EXISTING)
 │   ├── components/               # React components
 │   │   ├── ui/                   # Feature 003 - Existing UI components
-│   │   └── chat/                 # NEW - Chat components
-│   │       ├── ChatContainer.tsx # Main chat container
-│   │       ├── MessageList.tsx   # Message list with auto-scroll
-│   │       ├── MessageInput.tsx  # Input field with send button
-│   │       ├── Message.tsx       # Single message component
-│   │       └── LoadingIndicator.tsx # Loading state
+│   │   └── chat/                 # NEW - ChatKit wrapper components
+│   │       ├── ChatKitWrapper.tsx # ChatKit integration component
+│   │       └── ChatKitWrapper.module.css # Custom ChatKit styling (optional)
 │   ├── lib/                      # Utilities
 │   │   ├── api.ts                # Feature 003 - API client (EXISTING)
-│   │   └── chat-api.ts           # NEW - Chat API client
-│   ├── hooks/                    # React hooks
-│   │   └── useChat.ts            # NEW - Chat state management hook
+│   │   └── chatkit-config.ts     # NEW - ChatKit configuration and custom fetch
+│   ├── hooks/                    # React hooks (if needed)
+│   │   └── useChatKitAuth.ts     # NEW - JWT token management for ChatKit (optional)
 │   └── types/                    # TypeScript types
-│       └── chat.ts               # NEW - Chat message types
+│       └── chatkit.ts            # NEW - ChatKit type extensions (optional)
 └── tests/                        # Frontend tests
-    └── chat/                     # NEW - Chat component tests
-        ├── ChatContainer.test.tsx
-        ├── MessageList.test.tsx
-        ├── MessageInput.test.tsx
-        └── useChat.test.ts
+    └── chat/                     # NEW - ChatKit integration tests
+        └── ChatKitWrapper.test.tsx
 ```
 
-**Structure Decision**: Web application structure with existing frontend and backend. This feature adds a new `/chat` route to the frontend with minimal new components. The backend agent endpoint (POST /api/v1/agent/chat) already exists from Feature 005, so no backend changes are expected unless bugs are discovered during integration testing.
+**Structure Decision**: Web application structure with existing frontend and backend. This feature adds a new `/chat` route to the frontend using **OpenAI ChatKit** for the UI. ChatKit is a production-ready chat interface that handles message rendering, auto-scroll, loading states, and error display automatically. We only need to create a wrapper component to configure ChatKit and connect it to our existing agent endpoint. The backend agent endpoint (POST /api/v1/agent/chat) already exists from Feature 005, so no backend changes are expected unless bugs are discovered during integration testing.
 
 **Key Integration Points**:
-1. Frontend `/chat` page → Backend `/api/v1/agent/chat` endpoint
-2. JWT token from existing auth system (Feature 002)
+1. Frontend `/chat` page → ChatKit UI → Backend `/api/v1/agent/chat` endpoint
+2. JWT token from existing auth system (Feature 002) passed via ChatKit custom fetch
 3. Agent endpoint → MCP tools (Feature 004) → Backend APIs (Feature 001)
-4. Chat UI components reuse existing theme from Feature 003
+4. ChatKit styled with CSS to match existing theme from Feature 003
+5. ChatKit configured for NO streaming and NO database persistence
 
 ## Complexity Tracking
 
@@ -232,135 +236,156 @@ No violations detected. All constitution principles are satisfied:
 
 ## Phase 0: Research & Unknowns
 
-### Research Questions
+### Research Status: ✅ COMPLETE
 
-The following questions need to be researched before detailed design:
+All technical unknowns have been resolved. Research findings documented in `research.md`.
 
-1. **Chat UI Component Library**
-   - Question: Should we use an existing chat UI library (e.g., react-chat-elements, @chatscope/chat-ui-kit-react) or build custom components?
-   - Why: Existing libraries may speed up development but could conflict with theme requirements
-   - Research needed: Evaluate libraries for theme customization, bundle size, and Tailwind CSS compatibility
+### Key Decisions Made
 
-2. **Chat State Management**
-   - Question: Should we use React Context, Zustand, or simple useState for chat state?
-   - Why: Need to manage messages, loading state, and errors efficiently
-   - Research needed: Compare approaches for simplicity, performance, and testability
+1. **Chat UI Component Library**: ✅ Use OpenAI ChatKit (`@openai/chatkit-react`)
+   - Production-ready, official OpenAI UI
+   - Configurable for our constraints (no streaming, no persistence)
+   - Handles message rendering, auto-scroll, loading states automatically
 
-3. **Message Rendering Optimization**
-   - Question: How to optimize rendering for 100+ messages without performance degradation?
-   - Why: Spec requires support for 100+ messages with smooth scrolling
-   - Research needed: Investigate virtualization (react-window, react-virtuoso) vs simple optimization
+2. **Chat State Management**: ✅ Use ChatKit's built-in state management
+   - ChatKit manages messages, loading, errors internally
+   - We only manage JWT token and custom fetch
 
-4. **Auto-Scroll Implementation**
-   - Question: What's the best approach for auto-scrolling to latest message?
-   - Why: Must scroll smoothly (60fps) and handle edge cases (user scrolled up, new message arrives)
-   - Research needed: Best practices for scroll behavior and user experience
+3. **Message Rendering Optimization**: ✅ Use ChatKit's built-in optimization
+   - Production-tested for 100+ messages
+   - No manual optimization needed
 
-5. **Error Handling Patterns**
-   - Question: How to handle network errors, timeout errors, and agent errors consistently?
-   - Why: Spec requires graceful error handling with user-friendly messages
-   - Research needed: Error boundary patterns, retry logic, and error message design
+4. **Auto-Scroll Implementation**: ✅ Use ChatKit's built-in auto-scroll
+   - Automatic, smooth 60fps animation
+   - Handles edge cases (user scrolled up, etc.)
 
-6. **JWT Token Management**
-   - Question: Where is JWT token currently stored (localStorage, cookies, httpOnly cookies)?
-   - Why: Need to retrieve token for Authorization header
-   - Research needed: Review Feature 002 implementation for token storage location
+5. **Error Handling Patterns**: ✅ ChatKit errors + custom fetch error handling
+   - ChatKit displays errors inline
+   - Custom fetch handles auth, timeout, network errors
 
-7. **Theme Integration**
-   - Question: What are the exact theme variables (colors, fonts, spacing) used in existing UI?
-   - Why: Chat UI must match existing theme exactly (100% consistency per SC-003)
-   - Research needed: Extract theme variables from existing components
+6. **JWT Token Management**: ✅ Retrieve from existing auth system (Feature 002)
+   - Pass token via ChatKit custom fetch function
+   - Handle token expiry (401 → redirect to login)
 
-8. **Input Sanitization**
-   - Question: What sanitization library should we use to prevent XSS attacks?
-   - Why: Security requirement to sanitize user input and agent responses
-   - Research needed: Evaluate DOMPurify, sanitize-html, or built-in browser APIs
+7. **Theme Integration**: ✅ Style ChatKit with CSS modules or Tailwind
+   - Extract theme variables from tailwind.config.js
+   - Apply custom styles to ChatKit components
 
-### Research Outputs
+8. **Input Sanitization**: ✅ ChatKit built-in + DOMPurify
+   - ChatKit sanitizes by default
+   - DOMPurify adds extra layer of security
 
-Research findings will be documented in `research.md` with the following structure:
+**Research Output**: All decisions documented in `research.md` with rationale, alternatives considered, and implementation notes.
 
-```markdown
-# Research: Chat UI & End-to-End Integration
+**ChatKit Configuration Summary**:
+```typescript
+// Install: npm install @openai/chatkit-react dompurify
+import { useChatKit } from '@openai/chatkit-react';
 
-## Decision 1: Chat UI Component Library
-- **Decision**: [Build custom components | Use library X]
-- **Rationale**: [Why this approach was chosen]
-- **Alternatives Considered**: [Other options evaluated]
-- **Implementation Notes**: [Key details for tasks]
-
-## Decision 2: Chat State Management
-- **Decision**: [useState | Context | Zustand]
-- **Rationale**: [Why this approach was chosen]
-- **Alternatives Considered**: [Other options evaluated]
-- **Implementation Notes**: [Key details for tasks]
-
-[... continue for all research questions]
+const { control } = useChatKit({
+  api: {
+    url: 'http://localhost:8000/api/v1/agent/chat',
+    fetch: customFetch, // Inject JWT token
+  },
+  startScreen: {
+    greeting: 'How can I help you with your tasks today?',
+    prompts: [
+      { label: 'Show my tasks', prompt: 'Show my tasks' },
+      { label: 'Create a task', prompt: 'Create a task to...' },
+    ],
+  },
+  composer: { placeholder: 'Ask me anything about your tasks...' },
+  header: { enabled: false },
+  history: { enabled: true }, // In-memory only
+  // NO streaming, NO database persistence
+});
 ```
 
 ## Phase 1: Design & Contracts
 
 ### Data Model
 
-The following entities will be documented in `data-model.md`:
+The following entities are documented in `data-model.md`:
 
-1. **ChatMessage** (Frontend only - in-memory)
-   - Fields: id, text, sender, timestamp, status
-   - Validation: text max 1000 chars, sender enum (user|agent)
-   - State transitions: sending → sent → error
+**Note**: ChatKit manages most chat state internally. We only need minimal custom types for integration.
 
-2. **ChatSession** (Frontend only - in-memory)
-   - Fields: messages[], isLoading, error
-   - Lifecycle: created on page load, destroyed on navigation
+1. **ChatKit Internal State** (managed by ChatKit)
+   - Messages array (ChatKit handles this)
+   - Loading states (ChatKit handles this)
+   - Error states (ChatKit handles this)
+   - Auto-scroll behavior (ChatKit handles this)
 
-3. **AgentRequest** (API contract - existing)
-   - Fields: user_id, message
+2. **Custom Integration Types** (frontend only - minimal)
+   - JWT token retrieval function
+   - Custom fetch function with authentication
+   - ChatKit configuration object
+   - Theme styling overrides
+
+3. **AgentRequest** (API contract - existing from Feature 005)
+   - Fields: user_id (from JWT), message (user's text input)
    - Validation: user_id required, message 1-1000 chars
 
-4. **AgentResponse** (API contract - existing)
-   - Fields: response, metadata
+4. **AgentResponse** (API contract - existing from Feature 005)
+   - Fields: response (agent's text response), metadata (intent, tool_called, confidence, execution_time_ms)
    - Validation: response required, metadata optional
+
+**Key Point**: ChatKit significantly reduces the data model complexity. We don't need custom ChatMessage, ChatSession, or state management entities because ChatKit provides all of this out of the box.
 
 ### API Contracts
 
-The following contracts will be documented in `contracts/`:
+The following contracts are documented in `contracts/`:
 
-1. **chat-api.json** (Reference existing agent endpoint)
+1. **chat-api.json** (Reference existing agent endpoint from Feature 005)
    - Endpoint: POST /api/v1/agent/chat
    - Request: AgentRequest schema
    - Response: AgentResponse schema
    - Errors: 401 (unauthorized), 400 (validation), 500 (server error)
+   - **No changes needed** - existing endpoint works with ChatKit
 
-2. **chat-ui.json** (Frontend component contracts)
-   - ChatContainer props and events
-   - MessageList props and events
-   - MessageInput props and events
-   - Message props and rendering
+2. **chatkit-integration.json** (ChatKit configuration contract)
+   - ChatKit configuration options
+   - Custom fetch function signature
+   - Theme styling properties
+   - Error handling patterns
 
 ### Integration Scenarios
 
-The following scenarios will be documented in `quickstart.md`:
+The following scenarios are documented in `quickstart.md`:
 
-1. **Happy Path**: User sends message → Agent responds → Message displayed
-2. **Create Task**: User types "Create a task to buy milk" → Agent creates task → Confirmation displayed
-3. **List Tasks**: User types "Show my tasks" → Agent lists tasks → Tasks displayed
-4. **Complete Task**: User types "Complete task 1" → Agent marks complete → Confirmation displayed
-5. **Error Handling**: Network error → User-friendly error message → Retry option
-6. **Authentication**: Token expired → Redirect to login → Return to chat after login
+1. **Happy Path**: User sends message via ChatKit → Agent responds → ChatKit displays response
+2. **Create Task**: User types "Create a task to buy milk" → Agent creates task → ChatKit shows confirmation
+3. **List Tasks**: User types "Show my tasks" → Agent lists tasks → ChatKit displays formatted list
+4. **Complete Task**: User types "Complete task 1" → Agent marks complete → ChatKit shows confirmation
+5. **Error Handling**: Network error → ChatKit displays error message → User can retry
+6. **Authentication**: Token expired → Custom fetch detects 401 → Redirect to login
+
+**Key Integration Points**:
+- ChatKit's `useChatKit` hook with custom fetch
+- JWT token injection in custom fetch headers
+- Error handling in custom fetch (auth, timeout, network)
+- Theme styling via CSS modules or Tailwind
+- SSR-safe rendering with Next.js dynamic import
 
 ## Phase 2: Task Breakdown
 
-Task breakdown will be generated via `/sp.tasks` command after Phase 1 is complete.
+Task breakdown has been generated via `/sp.tasks` command using chatkit-expert agent.
 
-**Expected Task Categories**:
-1. **Setup Tasks**: Create chat route, install dependencies
-2. **Component Tasks**: Build ChatContainer, MessageList, MessageInput, Message components
-3. **Integration Tasks**: Connect to agent endpoint, implement JWT token passing
-4. **State Management Tasks**: Implement useChat hook, handle loading/error states
-5. **Styling Tasks**: Match existing theme, ensure responsive design
-6. **Error Handling Tasks**: Implement network error handling, timeout handling
-7. **Testing Tasks**: Unit tests, integration tests, E2E tests
-8. **Polish Tasks**: Auto-scroll optimization, loading indicators, accessibility
+**Task Categories (ChatKit Integration)**:
+1. **Setup Tasks**: Install ChatKit package (`@openai/chatkit-react`), install DOMPurify, create chat route
+2. **ChatKit Integration Tasks**: Create ChatKitWrapper component, configure ChatKit with custom fetch
+3. **Authentication Tasks**: Implement JWT token retrieval, pass token in custom fetch headers
+4. **Error Handling Tasks**: Handle auth errors (401), timeout errors (30s), network errors in custom fetch
+5. **Styling Tasks**: Extract theme variables, style ChatKit with CSS modules or Tailwind
+6. **Testing Tasks**: Test ChatKit integration, test all 5 task operations via chat
+7. **Polish Tasks**: Responsive design testing, accessibility, performance validation
+
+**Key Simplifications with ChatKit**:
+- ❌ No need to build: Message, MessageList, MessageInput, LoadingIndicator components (ChatKit provides these)
+- ❌ No need to implement: Auto-scroll, message rendering optimization, state management (ChatKit handles these)
+- ✅ Only need to build: ChatKitWrapper component, custom fetch function, theme styling
+- ✅ Focus on: Integration, authentication, error handling, theme consistency
+
+**Total Tasks**: 80 tasks organized by user story (generated by chatkit-expert agent)
 
 ## Dependencies
 
