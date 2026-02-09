@@ -1,324 +1,195 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Chat UI Component Contracts",
-  "description": "Component interfaces and contracts for chat UI",
-  "version": "1.0.0",
+  "title": "Chat UI Component Contracts (ChatKit Integration)",
+  "description": "Component interfaces and contracts for ChatKit-based chat UI",
+  "version": "2.0.0",
+  "approach": "OpenAI ChatKit Integration",
+  "note": "This feature uses OpenAI ChatKit (@openai/chatkit-react) instead of custom components. ChatKit handles message rendering, state management, auto-scroll, loading states, and error display automatically.",
   "components": [
     {
-      "name": "ChatContainer",
-      "description": "Main container component that orchestrates the chat interface",
-      "location": "frontend/src/components/chat/ChatContainer.tsx",
+      "name": "ChatKitWrapper",
+      "description": "Main wrapper component that integrates OpenAI ChatKit with our agent endpoint",
+      "location": "frontend/src/components/chat/ChatKitWrapper.tsx",
       "props": {
         "type": "object",
         "properties": {},
         "description": "No props - self-contained component"
       },
-      "state": {
-        "description": "Managed by useChat hook",
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/ChatMessage" },
-            "description": "Array of chat messages"
-          },
-          "isLoading": {
-            "type": "boolean",
-            "description": "True when waiting for agent response"
-          },
-          "error": {
-            "type": ["string", "null"],
-            "description": "Error message if request failed"
-          }
-        }
-      },
       "responsibilities": [
-        "Render MessageList and MessageInput components",
-        "Manage chat state via useChat hook",
-        "Handle authentication (redirect if not logged in)",
-        "Apply theme styles for consistency"
+        "Initialize ChatKit with useChatKit hook",
+        "Configure ChatKit to connect to agent endpoint",
+        "Provide custom fetch function for JWT authentication",
+        "Configure ChatKit for no streaming (single response mode)",
+        "Configure ChatKit for in-memory history only (no database persistence)",
+        "Apply custom styling to match application theme",
+        "Handle authentication (redirect if not logged in)"
       ],
-      "example": {
-        "usage": "<ChatContainer />"
-      }
-    },
-    {
-      "name": "MessageList",
-      "description": "Scrollable list of chat messages with auto-scroll",
-      "location": "frontend/src/components/chat/MessageList.tsx",
-      "props": {
-        "type": "object",
-        "required": ["messages", "isLoading"],
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/ChatMessage" },
-            "description": "Array of messages to display"
-          },
-          "isLoading": {
-            "type": "boolean",
-            "description": "Show loading indicator when true"
-          }
-        }
-      },
-      "responsibilities": [
-        "Render list of Message components",
-        "Auto-scroll to latest message",
-        "Disable auto-scroll when user scrolls up",
-        "Show loading indicator when isLoading=true",
-        "Handle empty state (no messages)"
-      ],
-      "behavior": {
-        "autoScroll": {
-          "description": "Automatically scrolls to bottom when new message arrives",
-          "trigger": "messages array changes",
-          "condition": "User is at bottom of list (within 50px)",
-          "animation": "smooth"
+      "chatKitConfiguration": {
+        "api": {
+          "url": "http://localhost:8000/api/v1/agent/chat",
+          "fetch": "customFetch function that injects JWT token"
         },
-        "userScroll": {
-          "description": "Detects when user scrolls up and disables auto-scroll",
-          "reEnable": "When user scrolls back to bottom"
-        }
-      },
-      "example": {
-        "usage": "<MessageList messages={messages} isLoading={isLoading} />"
-      }
-    },
-    {
-      "name": "MessageInput",
-      "description": "Input field with send button for composing messages",
-      "location": "frontend/src/components/chat/MessageInput.tsx",
-      "props": {
-        "type": "object",
-        "required": ["onSend", "disabled"],
-        "properties": {
-          "onSend": {
-            "type": "function",
-            "signature": "(message: string) => void",
-            "description": "Callback when user sends message"
-          },
-          "disabled": {
-            "type": "boolean",
-            "description": "Disable input when true (e.g., while loading)"
-          },
-          "error": {
-            "type": ["string", "null"],
-            "description": "Error message to display"
-          },
-          "onClearError": {
-            "type": "function",
-            "signature": "() => void",
-            "description": "Callback to clear error"
-          }
-        }
-      },
-      "state": {
-        "properties": {
-          "inputValue": {
-            "type": "string",
-            "description": "Current input field value"
-          }
-        }
-      },
-      "responsibilities": [
-        "Render text input field",
-        "Render send button",
-        "Handle Enter key press to send",
-        "Validate input (1-1000 chars)",
-        "Clear input after sending",
-        "Display error message if provided",
-        "Disable input when disabled=true"
-      ],
-      "validation": {
-        "minLength": 1,
-        "maxLength": 1000,
-        "errorMessage": "Message must be between 1 and 1000 characters"
-      },
-      "example": {
-        "usage": "<MessageInput onSend={handleSend} disabled={isLoading} error={error} onClearError={clearError} />"
-      }
-    },
-    {
-      "name": "Message",
-      "description": "Single message component with sender styling",
-      "location": "frontend/src/components/chat/Message.tsx",
-      "props": {
-        "type": "object",
-        "required": ["message"],
-        "properties": {
-          "message": {
-            "$ref": "#/definitions/ChatMessage",
-            "description": "Message data to display"
-          }
-        }
-      },
-      "responsibilities": [
-        "Render message text",
-        "Apply sender-specific styling (user vs agent)",
-        "Show timestamp",
-        "Show status indicator (sending, sent, error)",
-        "Sanitize message text before rendering"
-      ],
-      "styling": {
-        "user": {
-          "alignment": "right",
-          "background": "primary color",
-          "textColor": "white"
+        "startScreen": {
+          "greeting": "How can I help you with your tasks today?",
+          "prompts": [
+            { "label": "Show my tasks", "prompt": "Show my tasks" },
+            { "label": "Create a task", "prompt": "Create a task to..." }
+          ]
         },
-        "agent": {
-          "alignment": "left",
-          "background": "surface color",
-          "textColor": "text color"
+        "composer": {
+          "placeholder": "Ask me anything about your tasks..."
+        },
+        "header": {
+          "enabled": false
+        },
+        "history": {
+          "enabled": true,
+          "note": "In-memory only, no database persistence"
         }
       },
-      "optimization": {
-        "memo": true,
-        "description": "Wrapped with React.memo to prevent unnecessary re-renders"
-      },
       "example": {
-        "usage": "<Message message={chatMessage} />"
-      }
-    },
-    {
-      "name": "LoadingIndicator",
-      "description": "Loading indicator shown while waiting for agent response",
-      "location": "frontend/src/components/chat/LoadingIndicator.tsx",
-      "props": {
-        "type": "object",
-        "properties": {},
-        "description": "No props - displays standard loading animation"
-      },
-      "responsibilities": [
-        "Show animated loading indicator",
-        "Match application theme",
-        "Display 'Agent is thinking...' text"
-      ],
-      "example": {
-        "usage": "<LoadingIndicator />"
-      }
-    }
-  ],
-  "hooks": [
-    {
-      "name": "useChat",
-      "description": "Custom hook for managing chat state and API calls",
-      "location": "frontend/src/hooks/useChat.ts",
-      "signature": "() => UseChatReturn",
-      "returns": {
-        "type": "object",
-        "properties": {
-          "messages": {
-            "type": "array",
-            "items": { "$ref": "#/definitions/ChatMessage" },
-            "description": "Array of chat messages"
-          },
-          "isLoading": {
-            "type": "boolean",
-            "description": "True when waiting for agent response"
-          },
-          "error": {
-            "type": ["string", "null"],
-            "description": "Error message if request failed"
-          },
-          "sendMessage": {
-            "type": "function",
-            "signature": "(text: string) => Promise<void>",
-            "description": "Send message to agent"
-          },
-          "clearError": {
-            "type": "function",
-            "signature": "() => void",
-            "description": "Clear error message"
-          }
-        }
-      },
-      "responsibilities": [
-        "Manage messages array state",
-        "Manage loading state",
-        "Manage error state",
-        "Send messages to agent API",
-        "Handle API responses",
-        "Handle API errors",
-        "Generate message IDs (UUID v4)",
-        "Sanitize agent responses"
-      ],
-      "implementation": {
-        "stateManagement": "useState",
-        "apiClient": "chat-api.ts",
-        "errorHandling": "try-catch with user-friendly messages",
-        "sanitization": "DOMPurify for agent responses"
-      },
-      "example": {
-        "usage": "const { messages, isLoading, error, sendMessage, clearError } = useChat();"
+        "usage": "<ChatKitWrapper />"
       }
     }
   ],
   "utilities": [
     {
-      "name": "chat-api",
-      "description": "API client for chat endpoint",
-      "location": "frontend/src/lib/chat-api.ts",
+      "name": "chatkit-fetch",
+      "description": "Custom fetch function for ChatKit that injects JWT authentication",
+      "location": "frontend/src/lib/chatkit-fetch.ts",
       "exports": [
         {
-          "name": "sendChatMessage",
-          "signature": "(userId: string, message: string, token: string) => Promise<AgentResponse>",
-          "description": "Send message to agent endpoint",
-          "parameters": {
-            "userId": "Authenticated user ID from JWT",
-            "message": "User's message text",
-            "token": "JWT token for Authorization header"
+          "name": "customFetch",
+          "signature": "(url: string, options?: RequestInit) => Promise<Response>",
+          "description": "Wrapper around fetch that adds JWT token to Authorization header",
+          "implementation": {
+            "authentication": "Retrieves JWT token from existing auth system",
+            "headers": {
+              "Authorization": "Bearer {token}",
+              "Content-Type": "application/json"
+            },
+            "timeout": "30000ms using AbortController",
+            "errorHandling": [
+              "Network errors: User-friendly message",
+              "401 Unauthorized: Redirect to login",
+              "500 Server Error: Generic error message",
+              "Timeout: 'Request timed out' message"
+            ]
           },
-          "returns": "AgentResponse object",
-          "throws": [
-            "AuthError (401)",
-            "ValidationError (400)",
-            "ServerError (500)",
-            "NetworkError (fetch failed)",
-            "TimeoutError (>30s)"
-          ]
+          "errorHandling": {
+            "networkError": {
+              "message": "Connection failed. Please check your internet.",
+              "action": "Display error in ChatKit"
+            },
+            "authError401": {
+              "message": "Your session has expired. Please log in again.",
+              "action": "Redirect to /login"
+            },
+            "serverError500": {
+              "message": "Something went wrong. Please try again.",
+              "action": "Display error in ChatKit"
+            },
+            "timeout": {
+              "message": "Request timed out. Please try again.",
+              "action": "Display error in ChatKit"
+            }
+          }
         }
-      ],
+      ]
+    },
+    {
+      "name": "sanitization",
+      "description": "DOMPurify integration for extra XSS protection",
+      "location": "frontend/src/lib/chatkit-fetch.ts",
+      "note": "ChatKit sanitizes by default, DOMPurify adds extra layer of security",
       "implementation": {
-        "method": "POST",
-        "endpoint": "/api/v1/agent/chat",
-        "timeout": "30000ms",
-        "headers": {
-          "Authorization": "Bearer {token}",
-          "Content-Type": "application/json"
+        "library": "dompurify",
+        "config": {
+          "ALLOWED_TAGS": [],
+          "KEEP_CONTENT": true
         },
-        "errorHandling": "Throw typed errors for different status codes"
+        "usage": "Sanitize agent responses before returning to ChatKit"
       }
     }
   ],
+  "chatKitFeatures": {
+    "providedByChatKit": [
+      "Message rendering (user and agent messages)",
+      "Message list with virtualization",
+      "Auto-scroll to latest message",
+      "Loading indicator ('Agent is thinking...')",
+      "Error display (inline error messages)",
+      "Input field with send button",
+      "Enter key support",
+      "Message timestamps",
+      "Responsive design (mobile, tablet, desktop)",
+      "Accessibility (ARIA labels, keyboard navigation)"
+    ],
+    "implementedByUs": [
+      "JWT authentication via custom fetch",
+      "Custom error handling (401, 500, timeout, network)",
+      "Theme styling via CSS custom properties",
+      "Connection to existing agent endpoint",
+      "DOMPurify sanitization (extra layer)"
+    ]
+  },
+  "styling": {
+    "approach": "CSS custom properties and CSS modules",
+    "location": "frontend/src/components/chat/ChatKitWrapper.module.css",
+    "theme": {
+      "description": "Map existing theme variables to ChatKit CSS custom properties",
+      "requirements": [
+        "Extract colors from tailwind.config.js",
+        "Map to ChatKit CSS variables (--chatkit-primary, --chatkit-background, etc.)",
+        "Match existing component patterns",
+        "Responsive design (mobile 320px+, tablet 768px+, desktop 1024px+)"
+      ]
+    },
+    "cssCustomProperties": {
+      "--chatkit-primary": "Primary color from theme",
+      "--chatkit-background": "Surface color from theme",
+      "--chatkit-text": "Text color from theme",
+      "--chatkit-border": "Border color from theme",
+      "--chatkit-error": "Error color from theme"
+    }
+  },
+  "dataFlow": {
+    "userSendsMessage": [
+      "1. User types message in ChatKit composer",
+      "2. User presses Enter or clicks Send",
+      "3. ChatKit calls customFetch with message",
+      "4. customFetch retrieves JWT token from auth system",
+      "5. customFetch adds Authorization header",
+      "6. customFetch sends POST to /api/v1/agent/chat",
+      "7. Backend processes request (agent → MCP tools → APIs)",
+      "8. Backend returns AgentResponse",
+      "9. customFetch sanitizes response with DOMPurify",
+      "10. customFetch returns response to ChatKit",
+      "11. ChatKit displays agent message",
+      "12. ChatKit auto-scrolls to latest message"
+    ],
+    "errorHandling": [
+      "1. Request fails (network, timeout, 401, 500)",
+      "2. customFetch catches error",
+      "3. customFetch returns user-friendly error message",
+      "4. ChatKit displays error inline",
+      "5. User can retry by sending new message"
+    ]
+  },
   "definitions": {
-    "ChatMessage": {
+    "AgentRequest": {
       "type": "object",
-      "required": ["id", "text", "sender", "timestamp", "status"],
+      "required": ["user_id", "message"],
       "properties": {
-        "id": {
+        "user_id": {
           "type": "string",
-          "format": "uuid",
-          "description": "Unique message identifier (UUID v4)"
+          "description": "Authenticated user ID from JWT token"
         },
-        "text": {
+        "message": {
           "type": "string",
           "minLength": 1,
           "maxLength": 1000,
-          "description": "Message content"
-        },
-        "sender": {
-          "type": "string",
-          "enum": ["user", "agent"],
-          "description": "Message sender"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "ISO 8601 timestamp"
-        },
-        "status": {
-          "type": "string",
-          "enum": ["sending", "sent", "error"],
-          "description": "Message status"
+          "description": "User's natural language message"
         }
       }
     },
@@ -337,44 +208,109 @@
       }
     }
   },
-  "styling": {
-    "theme": {
-      "description": "All components must use existing theme variables from tailwind.config.js",
-      "requirements": [
-        "Use Tailwind utility classes only",
-        "No hardcoded colors or spacing",
-        "Match existing component patterns",
-        "Responsive design (mobile 320px+, tablet 768px+, desktop 1024px+)"
-      ]
-    },
-    "layout": {
-      "ChatContainer": "Full height container with flex column layout",
-      "MessageList": "Flex-grow scrollable area with padding",
-      "MessageInput": "Fixed bottom input with border-top",
-      "Message": "Flex row with alignment based on sender"
-    }
-  },
   "accessibility": {
-    "requirements": [
-      "Keyboard navigation support (Tab, Enter)",
+    "providedByChatKit": [
+      "Keyboard navigation (Tab, Enter)",
       "ARIA labels for screen readers",
-      "Focus management (input field, send button)",
-      "Color contrast meets WCAG AA standards",
-      "Error messages announced to screen readers"
+      "Focus management",
+      "Color contrast (configurable via theme)",
+      "Error announcements to screen readers"
+    ],
+    "additionalRequirements": [
+      "Ensure custom theme colors meet WCAG AA standards",
+      "Test with screen readers (NVDA, JAWS, VoiceOver)",
+      "Verify keyboard navigation works with custom styling"
     ]
   },
   "performance": {
-    "optimization": [
-      "React.memo for Message component",
-      "useCallback for event handlers",
-      "Stable message IDs (UUID) for React keys",
-      "No inline functions in render",
-      "Debounce input validation (if needed)"
+    "providedByChatKit": [
+      "Message virtualization for large lists",
+      "Optimized re-renders",
+      "Smooth auto-scroll (60fps)",
+      "Efficient state management"
     ],
     "targets": {
+      "chatKitInitialization": "<2 seconds",
       "messageRendering": "<50ms per message",
       "autoScroll": "60fps smooth animation",
-      "inputResponse": "<100ms to user interaction"
+      "inputResponse": "<100ms to user interaction",
+      "largeMessageList": "No lag with 100+ messages"
     }
-  }
+  },
+  "security": {
+    "authentication": {
+      "method": "JWT token in Authorization header",
+      "retrieval": "From existing auth system (Feature 002)",
+      "storage": "Never stored in component state or logged",
+      "expiry": "401 response triggers redirect to login"
+    },
+    "sanitization": {
+      "chatKitBuiltIn": "ChatKit sanitizes user input and agent responses automatically",
+      "domPurify": "Extra layer of XSS protection for agent responses",
+      "config": {
+        "ALLOWED_TAGS": [],
+        "KEEP_CONTENT": true
+      }
+    },
+    "userIsolation": {
+      "enforcement": "Backend agent endpoint enforces user_id from JWT",
+      "mcpTools": "All MCP tools filter queries by user_id",
+      "crossUserAccess": "Returns 404 (not 403) to prevent info leakage"
+    }
+  },
+  "testing": {
+    "componentTests": [
+      "ChatKitWrapper renders without errors",
+      "Custom fetch injects JWT token correctly",
+      "Error handling displays user-friendly messages",
+      "401 response redirects to login",
+      "Theme styling applied correctly"
+    ],
+    "integrationTests": [
+      "Send message → agent responds",
+      "Create task via chat → task appears in database",
+      "List tasks via chat → correct tasks displayed",
+      "Network error → error message displayed",
+      "Token expiry → redirect to login"
+    ],
+    "performanceTests": [
+      "100+ messages render without lag",
+      "Auto-scroll remains smooth",
+      "No memory leaks",
+      "p95 latency < 2 seconds"
+    ]
+  },
+  "migration": {
+    "fromCustomComponents": {
+      "removed": [
+        "ChatContainer component",
+        "MessageList component",
+        "MessageInput component",
+        "Message component",
+        "LoadingIndicator component",
+        "useChat hook",
+        "chat-api.ts (replaced by customFetch)"
+      ],
+      "added": [
+        "ChatKitWrapper component",
+        "chatkit-fetch.ts (custom fetch function)",
+        "ChatKitWrapper.module.css (theme styling)"
+      ],
+      "benefits": [
+        "Reduced code complexity (1 component vs 5 components + 1 hook)",
+        "Production-tested UI from OpenAI",
+        "Built-in accessibility and performance optimizations",
+        "Automatic message rendering, auto-scroll, loading states",
+        "Reduced maintenance burden"
+      ]
+    }
+  },
+  "notes": [
+    "ChatKit handles all UI complexity - we only handle authentication and styling",
+    "No streaming responses - ChatKit configured for single response mode",
+    "No database persistence - chat history in-memory only",
+    "Backend agent endpoint already exists (Feature 005) - no backend changes needed",
+    "DELETE operation has known 80% success rate (acceptable per spec)",
+    "ChatKit is SSR-safe when loaded with Next.js dynamic import"
+  ]
 }

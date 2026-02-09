@@ -3,10 +3,13 @@
 **Feature**: 006-chat-ui-integration
 **Date**: 2026-02-09
 **Purpose**: Integration scenarios and testing guide
+**Approach**: OpenAI ChatKit Integration
 
 ## Overview
 
 This guide provides step-by-step integration scenarios for testing the chat UI end-to-end. Each scenario demonstrates a complete user flow from frontend to backend.
+
+**Implementation Note**: This feature uses **OpenAI ChatKit** (`@openai/chatkit-react`) for the chat interface. ChatKit handles message rendering, state management, auto-scroll, loading states, and error display automatically. We only implement JWT authentication and theme styling.
 
 ## Prerequisites
 
