@@ -1,0 +1,380 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Chat UI Component Contracts",
+  "description": "Component interfaces and contracts for chat UI",
+  "version": "1.0.0",
+  "components": [
+    {
+      "name": "ChatContainer",
+      "description": "Main container component that orchestrates the chat interface",
+      "location": "frontend/src/components/chat/ChatContainer.tsx",
+      "props": {
+        "type": "object",
+        "properties": {},
+        "description": "No props - self-contained component"
+      },
+      "state": {
+        "description": "Managed by useChat hook",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/ChatMessage" },
+            "description": "Array of chat messages"
+          },
+          "isLoading": {
+            "type": "boolean",
+            "description": "True when waiting for agent response"
+          },
+          "error": {
+            "type": ["string", "null"],
+            "description": "Error message if request failed"
+          }
+        }
+      },
+      "responsibilities": [
+        "Render MessageList and MessageInput components",
+        "Manage chat state via useChat hook",
+        "Handle authentication (redirect if not logged in)",
+        "Apply theme styles for consistency"
+      ],
+      "example": {
+        "usage": "<ChatContainer />"
+      }
+    },
+    {
+      "name": "MessageList",
+      "description": "Scrollable list of chat messages with auto-scroll",
+      "location": "frontend/src/components/chat/MessageList.tsx",
+      "props": {
+        "type": "object",
+        "required": ["messages", "isLoading"],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/ChatMessage" },
+            "description": "Array of messages to display"
+          },
+          "isLoading": {
+            "type": "boolean",
+            "description": "Show loading indicator when true"
+          }
+        }
+      },
+      "responsibilities": [
+        "Render list of Message components",
+        "Auto-scroll to latest message",
+        "Disable auto-scroll when user scrolls up",
+        "Show loading indicator when isLoading=true",
+        "Handle empty state (no messages)"
+      ],
+      "behavior": {
+        "autoScroll": {
+          "description": "Automatically scrolls to bottom when new message arrives",
+          "trigger": "messages array changes",
+          "condition": "User is at bottom of list (within 50px)",
+          "animation": "smooth"
+        },
+        "userScroll": {
+          "description": "Detects when user scrolls up and disables auto-scroll",
+          "reEnable": "When user scrolls back to bottom"
+        }
+      },
+      "example": {
+        "usage": "<MessageList messages={messages} isLoading={isLoading} />"
+      }
+    },
+    {
+      "name": "MessageInput",
+      "description": "Input field with send button for composing messages",
+      "location": "frontend/src/components/chat/MessageInput.tsx",
+      "props": {
+        "type": "object",
+        "required": ["onSend", "disabled"],
+        "properties": {
+          "onSend": {
+            "type": "function",
+            "signature": "(message: string) => void",
+            "description": "Callback when user sends message"
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Disable input when true (e.g., while loading)"
+          },
+          "error": {
+            "type": ["string", "null"],
+            "description": "Error message to display"
+          },
+          "onClearError": {
+            "type": "function",
+            "signature": "() => void",
+            "description": "Callback to clear error"
+          }
+        }
+      },
+      "state": {
+        "properties": {
+          "inputValue": {
+            "type": "string",
+            "description": "Current input field value"
+          }
+        }
+      },
+      "responsibilities": [
+        "Render text input field",
+        "Render send button",
+        "Handle Enter key press to send",
+        "Validate input (1-1000 chars)",
+        "Clear input after sending",
+        "Display error message if provided",
+        "Disable input when disabled=true"
+      ],
+      "validation": {
+        "minLength": 1,
+        "maxLength": 1000,
+        "errorMessage": "Message must be between 1 and 1000 characters"
+      },
+      "example": {
+        "usage": "<MessageInput onSend={handleSend} disabled={isLoading} error={error} onClearError={clearError} />"
+      }
+    },
+    {
+      "name": "Message",
+      "description": "Single message component with sender styling",
+      "location": "frontend/src/components/chat/Message.tsx",
+      "props": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "$ref": "#/definitions/ChatMessage",
+            "description": "Message data to display"
+          }
+        }
+      },
+      "responsibilities": [
+        "Render message text",
+        "Apply sender-specific styling (user vs agent)",
+        "Show timestamp",
+        "Show status indicator (sending, sent, error)",
+        "Sanitize message text before rendering"
+      ],
+      "styling": {
+        "user": {
+          "alignment": "right",
+          "background": "primary color",
+          "textColor": "white"
+        },
+        "agent": {
+          "alignment": "left",
+          "background": "surface color",
+          "textColor": "text color"
+        }
+      },
+      "optimization": {
+        "memo": true,
+        "description": "Wrapped with React.memo to prevent unnecessary re-renders"
+      },
+      "example": {
+        "usage": "<Message message={chatMessage} />"
+      }
+    },
+    {
+      "name": "LoadingIndicator",
+      "description": "Loading indicator shown while waiting for agent response",
+      "location": "frontend/src/components/chat/LoadingIndicator.tsx",
+      "props": {
+        "type": "object",
+        "properties": {},
+        "description": "No props - displays standard loading animation"
+      },
+      "responsibilities": [
+        "Show animated loading indicator",
+        "Match application theme",
+        "Display 'Agent is thinking...' text"
+      ],
+      "example": {
+        "usage": "<LoadingIndicator />"
+      }
+    }
+  ],
+  "hooks": [
+    {
+      "name": "useChat",
+      "description": "Custom hook for managing chat state and API calls",
+      "location": "frontend/src/hooks/useChat.ts",
+      "signature": "() => UseChatReturn",
+      "returns": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/ChatMessage" },
+            "description": "Array of chat messages"
+          },
+          "isLoading": {
+            "type": "boolean",
+            "description": "True when waiting for agent response"
+          },
+          "error": {
+            "type": ["string", "null"],
+            "description": "Error message if request failed"
+          },
+          "sendMessage": {
+            "type": "function",
+            "signature": "(text: string) => Promise<void>",
+            "description": "Send message to agent"
+          },
+          "clearError": {
+            "type": "function",
+            "signature": "() => void",
+            "description": "Clear error message"
+          }
+        }
+      },
+      "responsibilities": [
+        "Manage messages array state",
+        "Manage loading state",
+        "Manage error state",
+        "Send messages to agent API",
+        "Handle API responses",
+        "Handle API errors",
+        "Generate message IDs (UUID v4)",
+        "Sanitize agent responses"
+      ],
+      "implementation": {
+        "stateManagement": "useState",
+        "apiClient": "chat-api.ts",
+        "errorHandling": "try-catch with user-friendly messages",
+        "sanitization": "DOMPurify for agent responses"
+      },
+      "example": {
+        "usage": "const { messages, isLoading, error, sendMessage, clearError } = useChat();"
+      }
+    }
+  ],
+  "utilities": [
+    {
+      "name": "chat-api",
+      "description": "API client for chat endpoint",
+      "location": "frontend/src/lib/chat-api.ts",
+      "exports": [
+        {
+          "name": "sendChatMessage",
+          "signature": "(userId: string, message: string, token: string) => Promise<AgentResponse>",
+          "description": "Send message to agent endpoint",
+          "parameters": {
+            "userId": "Authenticated user ID from JWT",
+            "message": "User's message text",
+            "token": "JWT token for Authorization header"
+          },
+          "returns": "AgentResponse object",
+          "throws": [
+            "AuthError (401)",
+            "ValidationError (400)",
+            "ServerError (500)",
+            "NetworkError (fetch failed)",
+            "TimeoutError (>30s)"
+          ]
+        }
+      ],
+      "implementation": {
+        "method": "POST",
+        "endpoint": "/api/v1/agent/chat",
+        "timeout": "30000ms",
+        "headers": {
+          "Authorization": "Bearer {token}",
+          "Content-Type": "application/json"
+        },
+        "errorHandling": "Throw typed errors for different status codes"
+      }
+    }
+  ],
+  "definitions": {
+    "ChatMessage": {
+      "type": "object",
+      "required": ["id", "text", "sender", "timestamp", "status"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique message identifier (UUID v4)"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Message content"
+        },
+        "sender": {
+          "type": "string",
+          "enum": ["user", "agent"],
+          "description": "Message sender"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["sending", "sent", "error"],
+          "description": "Message status"
+        }
+      }
+    },
+    "AgentResponse": {
+      "type": "object",
+      "required": ["response"],
+      "properties": {
+        "response": {
+          "type": "string",
+          "description": "Agent's natural language response"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Optional execution metadata"
+        }
+      }
+    }
+  },
+  "styling": {
+    "theme": {
+      "description": "All components must use existing theme variables from tailwind.config.js",
+      "requirements": [
+        "Use Tailwind utility classes only",
+        "No hardcoded colors or spacing",
+        "Match existing component patterns",
+        "Responsive design (mobile 320px+, tablet 768px+, desktop 1024px+)"
+      ]
+    },
+    "layout": {
+      "ChatContainer": "Full height container with flex column layout",
+      "MessageList": "Flex-grow scrollable area with padding",
+      "MessageInput": "Fixed bottom input with border-top",
+      "Message": "Flex row with alignment based on sender"
+    }
+  },
+  "accessibility": {
+    "requirements": [
+      "Keyboard navigation support (Tab, Enter)",
+      "ARIA labels for screen readers",
+      "Focus management (input field, send button)",
+      "Color contrast meets WCAG AA standards",
+      "Error messages announced to screen readers"
+    ]
+  },
+  "performance": {
+    "optimization": [
+      "React.memo for Message component",
+      "useCallback for event handlers",
+      "Stable message IDs (UUID) for React keys",
+      "No inline functions in render",
+      "Debounce input validation (if needed)"
+    ],
+    "targets": {
+      "messageRendering": "<50ms per message",
+      "autoScroll": "60fps smooth animation",
+      "inputResponse": "<100ms to user interaction"
+    }
+  }
+}
