@@ -1,0 +1,271 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Stateless Task Agent API",
+    "version": "1.0.0",
+    "description": "API endpoint for natural language task management via AI agent"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/api/agent/chat": {
+      "post": {
+        "summary": "Send message to task agent",
+        "description": "Process natural language message and invoke appropriate MCP task tool. Agent is stateless - each request is independent.",
+        "operationId": "chatWithAgent",
+        "tags": ["Agent"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRequest"
+              },
+              "examples": {
+                "createTask": {
+                  "summary": "Create a new task",
+                  "value": {
+                    "user_id": "user-123",
+                    "message": "Create a task to buy groceries"
+                  }
+                },
+                "listTasks": {
+                  "summary": "List all tasks",
+                  "value": {
+                    "user_id": "user-123",
+                    "message": "Show me my tasks"
+                  }
+                },
+                "completeTask": {
+                  "summary": "Mark task as complete",
+                  "value": {
+                    "user_id": "user-123",
+                    "message": "Mark 'Buy groceries' as done"
+                  }
+                },
+                "updateTask": {
+                  "summary": "Update task details",
+                  "value": {
+                    "user_id": "user-123",
+                    "message": "Change 'Buy groceries' to 'Buy organic groceries'"
+                  }
+                },
+                "deleteTask": {
+                  "summary": "Delete a task",
+                  "value": {
+                    "user_id": "user-123",
+                    "message": "Delete task 5"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response from agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                },
+                "examples": {
+                  "createSuccess": {
+                    "summary": "Task created successfully",
+                    "value": {
+                      "response": "Task created: Buy groceries",
+                      "metadata": {
+                        "intent": "CREATE",
+                        "tool_called": "add_task",
+                        "confidence": 0.95,
+                        "execution_time_ms": 312
+                      }
+                    }
+                  },
+                  "listSuccess": {
+                    "summary": "Tasks listed successfully",
+                    "value": {
+                      "response": "You have 3 tasks: 1) Buy groceries 2) Call dentist 3) Finish report",
+                      "metadata": {
+                        "intent": "LIST",
+                        "tool_called": "list_tasks",
+                        "confidence": 0.98,
+                        "execution_time_ms": 245
+                      }
+                    }
+                  },
+                  "completeSuccess": {
+                    "summary": "Task marked complete",
+                    "value": {
+                      "response": "Marked 'Buy groceries' as done",
+                      "metadata": {
+                        "intent": "COMPLETE",
+                        "tool_called": "complete_task",
+                        "confidence": 0.92,
+                        "execution_time_ms": 198
+                      }
+                    }
+                  },
+                  "taskNotFound": {
+                    "summary": "Task not found error",
+                    "value": {
+                      "response": "I couldn't find that task. Try listing your tasks first.",
+                      "metadata": {
+                        "intent": "COMPLETE",
+                        "tool_called": "complete_task",
+                        "confidence": 0.88,
+                        "execution_time_ms": 156
+                      }
+                    }
+                  },
+                  "invalidIntent": {
+                    "summary": "Invalid intent (not task-related)",
+                    "value": {
+                      "response": "I can only help with task management. Try 'create a task' or 'show my tasks'.",
+                      "metadata": {
+                        "intent": "UNKNOWN",
+                        "tool_called": null,
+                        "confidence": 0.45,
+                        "execution_time_ms": 89
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request (validation error)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingUserId": {
+                    "summary": "Missing user_id",
+                    "value": {
+                      "detail": "User ID is required"
+                    }
+                  },
+                  "emptyMessage": {
+                    "summary": "Empty message",
+                    "value": {
+                      "detail": "Message cannot be empty"
+                    }
+                  },
+                  "messageTooLong": {
+                    "summary": "Message exceeds max length",
+                    "value": {
+                      "detail": "Message must be under 1000 characters"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "internalError": {
+                    "summary": "Unexpected error",
+                    "value": {
+                      "detail": "An internal error occurred. Please try again."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentRequest": {
+        "type": "object",
+        "required": ["user_id", "message"],
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Pre-authenticated user identifier",
+            "minLength": 1,
+            "example": "user-123"
+          },
+          "message": {
+            "type": "string",
+            "description": "Natural language message from user",
+            "minLength": 1,
+            "maxLength": 1000,
+            "example": "Create a task to buy groceries"
+          }
+        }
+      },
+      "AgentResponse": {
+        "type": "object",
+        "required": ["response"],
+        "properties": {
+          "response": {
+            "type": "string",
+            "description": "Natural language response from agent",
+            "minLength": 1,
+            "maxLength": 500,
+            "example": "Task created: Buy groceries"
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional context for debugging/logging (optional)",
+            "properties": {
+              "intent": {
+                "type": "string",
+                "description": "Classified intent",
+                "enum": ["CREATE", "LIST", "COMPLETE", "UPDATE", "DELETE", "UNKNOWN"],
+                "example": "CREATE"
+              },
+              "tool_called": {
+                "type": "string",
+                "description": "MCP tool invoked (null if no tool called)",
+                "enum": ["list_tasks", "add_task", "complete_task", "update_task", "delete_task", null],
+                "example": "add_task"
+              },
+              "confidence": {
+                "type": "number",
+                "description": "Classification confidence score (0.0-1.0)",
+                "minimum": 0.0,
+                "maximum": 1.0,
+                "example": 0.95
+              },
+              "execution_time_ms": {
+                "type": "integer",
+                "description": "Total request processing time in milliseconds",
+                "minimum": 0,
+                "example": 312
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["detail"],
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Error message",
+            "example": "User ID is required"
+          }
+        }
+      }
+    }
+  }
+}

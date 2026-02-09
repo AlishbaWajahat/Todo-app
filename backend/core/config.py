@@ -18,12 +18,16 @@ class Settings(BaseSettings):
         jwt_algorithm: JWT signing algorithm (default: HS256)
         cors_origins: List of allowed CORS origins for frontend
         environment: Application environment (development, production, test)
+        gemini_api_key: API key for Gemini AI model access
+        openai_base_url: Base URL for OpenAI-compatible API (Gemini routing)
     """
     database_url: str
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     cors_origins: List[str] = ["http://localhost:3000"]
     environment: str = "development"
+    gemini_api_key: str
+    openai_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
     @field_validator("jwt_secret")
     @classmethod

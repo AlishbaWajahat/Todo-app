@@ -19,7 +19,7 @@ import logging
 
 from core.config import settings
 from core.database import create_db_and_tables
-from api.v1.endpoints import tasks, auth, users
+from api.v1.endpoints import tasks, auth, users, agent
 from middleware.auth import auth_middleware
 
 # Configure logging
@@ -176,6 +176,7 @@ async def authentication_middleware(request, call_next):
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(agent.router, prefix="/api/v1")
 
 # Mount static files for uploaded avatars
 # Create uploads directory if it doesn't exist
