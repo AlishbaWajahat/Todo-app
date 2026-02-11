@@ -4,10 +4,13 @@ User entity model for database operations.
 Defines the User table structure using SQLModel for authentication.
 Supports both native authentication (email/password) and JWT-based auto-provisioning.
 """
-from sqlmodel import SQLModel, Field
-from typing import Optional
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 import uuid
+
+if TYPE_CHECKING:
+    from .conversation import Conversation
 
 
 class User(SQLModel, table=True):
@@ -36,3 +39,6 @@ class User(SQLModel, table=True):
     avatar_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationships
+    conversations: List["Conversation"] = Relationship(back_populates="user")

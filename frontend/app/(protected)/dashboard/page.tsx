@@ -9,6 +9,7 @@ import { TaskFilters } from '@/components/tasks/TaskFilters';
 import { DeleteConfirmModal } from '@/components/tasks/DeleteConfirmModal';
 import { getTasks } from '@/lib/api/tasks';
 import { ApiError } from '@/lib/api/errors';
+import { useTaskRevalidation } from '@/lib/context/TaskRevalidationContext';
 
 /**
  * Dashboard Page
@@ -22,6 +23,32 @@ export default function DashboardPage() {
   const [currentFilter, setCurrentFilter] = useState<TaskFilter>('all');
   const [currentSort, setCurrentSort] = useState<TaskSort>('created');
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+
+  // Register fetchTasks with the revalidation context
+  const { registerRevalidation } = useTaskRevalidation();
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const fetchedTasks = await getTasks();
+      setTasks(fetchedTasks);
+    } catch (err) {
+      if (ApiError.isApiError(err)) {
+        setError(err.getUserMessage());
+      } else {
+        setError('Failed to load tasks. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Register the fetchTasks function so chat components can trigger it
+  useEffect(() => {
+    registerRevalidation(fetchTasks);
+  }, [registerRevalidation]);
 
   // Fetch tasks on mount
   useEffect(() => {
@@ -71,24 +98,6 @@ export default function DashboardPage() {
 
     setFilteredTasks(filtered);
   }, [tasks, currentFilter, currentSort]);
-
-  const fetchTasks = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const fetchedTasks = await getTasks();
-      setTasks(fetchedTasks);
-    } catch (err) {
-      if (ApiError.isApiError(err)) {
-        setError(err.getUserMessage());
-      } else {
-        setError('Failed to load tasks. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleTaskUpdate = (updatedTask: Task) => {
     setTasks((prevTasks) =>

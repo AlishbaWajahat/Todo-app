@@ -1,0 +1,562 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Chat API",
+    "description": "API endpoint for ChatKit integration with conversation persistence",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/api/v1",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/chat": {
+      "post": {
+        "summary": "Send message to AI agent with conversation context",
+        "description": "Process natural language message and invoke appropriate MCP task tool. Maintains conversation history in database for stateless architecture.",
+        "operationId": "chatWithAgent",
+        "tags": ["chat"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              },
+              "examples": {
+                "newConversation": {
+                  "summary": "Start new conversation",
+                  "value": {
+                    "message": "Create a task to buy groceries",
+                    "conversation_id": null
+                  }
+                },
+                "continueConversation": {
+                  "summary": "Continue existing conversation",
+                  "value": {
+                    "message": "Mark it as high priority",
+                    "conversation_id": "550e8400-e29b-41d4-a716-446655440000"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response from agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                },
+                "examples": {
+                  "taskCreated": {
+                    "summary": "Task created successfully",
+                    "value": {
+                      "response": "Task created: Buy groceries",
+                      "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "metadata": {
+                        "intent": "CREATE",
+                        "tool_called": "add_task",
+                        "confidence": 0.95,
+                        "execution_time_ms": 312
+                      }
+                    }
+                  },
+                  "confirmationRequired": {
+                    "summary": "Confirmation required for destructive action",
+                    "value": {
+                      "response": "⚠️ Are you sure you want to delete this task? Reply 'yes' to confirm or 'no' to cancel.",
+                      "conversation_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "metadata": {
+                        "intent": "DELETE_CONFIRMATION_REQUIRED",
+                        "pending_action": {
+                          "operation_type": "DELETE",
+                          "task_id": 5
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "emptyMessage": {
+                    "summary": "Empty message",
+                    "value": {
+                      "detail": "Message cannot be empty",
+                      "code": "VALIDATION_ERROR"
+                    }
+                  },
+                  "messageTooLong": {
+                    "summary": "Message exceeds max length",
+                    "value": {
+                      "detail": "Message must be under 1000 characters",
+                      "code": "VALIDATION_ERROR"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - missing or invalid JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "Invalid or expired authentication token",
+                  "code": "UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found or doesn't belong to user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "Conversation not found or you don't have permission to access it",
+                  "code": "CONVERSATION_NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "detail": "An internal error occurred. Please try again.",
+                  "code": "INTERNAL_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations": {
+      "get": {
+        "summary": "List user's conversations",
+        "description": "Retrieve all conversations for the authenticated user, sorted by most recent first",
+        "operationId": "listConversations",
+        "tags": ["chat"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of conversations to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of conversations to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of conversations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/conversations/{conversation_id}/messages": {
+      "get": {
+        "summary": "Get conversation history",
+        "description": "Retrieve all messages for a specific conversation with pagination",
+        "operationId": "getConversationMessages",
+        "tags": ["chat"],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "description": "Conversation UUID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of messages to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of messages to skip",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token from Better Auth"
+      }
+    },
+    "schemas": {
+      "ChatRequest": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "description": "Natural language message from user",
+            "example": "Create a task to buy groceries"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Conversation UUID (null for new conversation)",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          }
+        }
+      },
+      "ChatResponse": {
+        "type": "object",
+        "required": ["response", "conversation_id"],
+        "properties": {
+          "response": {
+            "type": "string",
+            "description": "Natural language response from agent",
+            "example": "Task created: Buy groceries"
+          },
+          "conversation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Conversation UUID (created if new)",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true,
+            "description": "Additional context for debugging",
+            "properties": {
+              "intent": {
+                "type": "string",
+                "description": "Classified intent",
+                "example": "CREATE"
+              },
+              "tool_called": {
+                "type": "string",
+                "nullable": true,
+                "description": "MCP tool that was invoked",
+                "example": "add_task"
+              },
+              "confidence": {
+                "type": "number",
+                "format": "float",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Intent classification confidence",
+                "example": 0.95
+              },
+              "execution_time_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Total execution time in milliseconds",
+                "example": 312
+              }
+            }
+          }
+        }
+      },
+      "ConversationListResponse": {
+        "type": "object",
+        "required": ["conversations", "total"],
+        "properties": {
+          "conversations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversationSummary"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of conversations",
+            "example": 15
+          }
+        }
+      },
+      "ConversationSummary": {
+        "type": "object",
+        "required": ["id", "title", "created_at", "updated_at", "message_count"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true,
+            "description": "Conversation title (auto-generated from first message)",
+            "example": "Task Management"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-02-09T10:30:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-02-09T14:45:00Z"
+          },
+          "message_count": {
+            "type": "integer",
+            "description": "Number of messages in conversation",
+            "example": 12
+          }
+        }
+      },
+      "MessageListResponse": {
+        "type": "object",
+        "required": ["messages", "total"],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageDetail"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of messages in conversation",
+            "example": 48
+          }
+        }
+      },
+      "MessageDetail": {
+        "type": "object",
+        "required": ["id", "role", "content", "sequence_number", "created_at"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 12345
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"],
+            "example": "assistant"
+          },
+          "content": {
+            "type": "string",
+            "example": "Task created: Buy groceries"
+          },
+          "sequence_number": {
+            "type": "integer",
+            "description": "Order within conversation (0-indexed)",
+            "example": 5
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-02-09T10:35:00Z"
+          },
+          "tool_calls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ToolCallDetail"
+            }
+          }
+        }
+      },
+      "ToolCallDetail": {
+        "type": "object",
+        "required": ["id", "tool_name", "tool_input", "status", "created_at"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 789
+          },
+          "tool_name": {
+            "type": "string",
+            "example": "add_task"
+          },
+          "tool_input": {
+            "type": "object",
+            "description": "Tool input parameters (JSONB)",
+            "example": {
+              "user_id": "123",
+              "title": "Buy groceries"
+            }
+          },
+          "tool_output": {
+            "type": "object",
+            "nullable": true,
+            "description": "Tool execution result (JSONB)",
+            "example": {
+              "success": true,
+              "data": {
+                "id": 456,
+                "title": "Buy groceries"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "success", "error"],
+            "example": "success"
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "execution_time_ms": {
+            "type": "integer",
+            "nullable": true,
+            "example": 150
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-02-09T10:35:00Z"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-02-09T10:35:00.150Z"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["detail", "code"],
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Human-readable error message",
+            "example": "Message cannot be empty"
+          },
+          "code": {
+            "type": "string",
+            "description": "Machine-readable error code",
+            "example": "VALIDATION_ERROR"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,16 +1,13 @@
-import { Metadata } from 'next';
-import { Header } from '@/components/layout/Header';
+'use client';
 
-export const metadata: Metadata = {
-  title: {
-    template: '%s | Todo App',
-    default: 'Dashboard',
-  },
-};
+import { Header } from '@/components/layout/Header';
+import { ClientLayoutWrapper } from '@/components/layout/ClientLayoutWrapper';
+import { TaskRevalidationProvider } from '@/lib/context/TaskRevalidationContext';
 
 /**
  * Protected route group layout
  * Wraps all authenticated pages with consistent structure
+ * Includes floating ChatKit widget for task management assistance
  */
 export default function ProtectedLayout({
   children,
@@ -24,7 +21,11 @@ export default function ProtectedLayout({
 
       {/* Main content with skip-to-content target */}
       <main id="main-content" className="max-w-[800px] mx-auto px-4 py-8" tabIndex={-1}>
-        {children}
+        <TaskRevalidationProvider>
+          <ClientLayoutWrapper>
+            {children}
+          </ClientLayoutWrapper>
+        </TaskRevalidationProvider>
       </main>
     </div>
   );

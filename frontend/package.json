@@ -9,7 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@openai/chatkit-react": "^1.4.3",
+    "@types/dompurify": "^3.0.5",
     "better-auth": "^1.4.18",
+    "dompurify": "^3.3.1",
     "next": "16.0.10",
     "react": "19.2.0",
     "react-dom": "19.2.0",

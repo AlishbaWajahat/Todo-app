@@ -35,7 +35,7 @@ class IntentClassification(BaseModel):
     classification_method: ClassificationMethod
 
 
-def parse_intent(message: str) -> IntentClassification:
+def parse_intent(message: str, conversation_history: Optional[list] = None) -> IntentClassification:
     """
     Parse user message to identify intent and extract parameters.
 
@@ -44,6 +44,7 @@ def parse_intent(message: str) -> IntentClassification:
 
     Args:
         message: Natural language message from user
+        conversation_history: Optional list of recent messages for context
 
     Returns:
         IntentClassification with operation type, confidence, and parameters
@@ -56,6 +57,16 @@ def parse_intent(message: str) -> IntentClassification:
         IntentClassification(operation_type=Intent.LIST, confidence=0.98, ...)
     """
     message_lower = message.lower().strip()
+
+    # Build context from conversation history for reference extraction
+    context_text = ""
+    if conversation_history:
+        # Get last 3 user messages for context
+        recent_user_messages = [
+            msg["content"] for msg in conversation_history[-6:]
+            if msg.get("role") == "user"
+        ][-3:]
+        context_text = " ".join(recent_user_messages)
 
     # Try rule-based classification first (fast path)
 
@@ -87,17 +98,28 @@ def parse_intent(message: str) -> IntentClassification:
             classification_method=ClassificationMethod.RULE_BASED
         )
 
-    # COMPLETE patterns (allow flexible text after complete/finish/done)
+    # COMPLETE patterns (handle natural language variations)
     complete_patterns = [
-        r'\b(mark|set)\s+.*\s+as\s+(done|complete|finished)\b',
-        r'\b(complete|finish|done)\s+',  # Match complete/finish/done followed by anything
-        r'\bundo\s+(completion|complete)\b'
+        # "mark X as done/complete/completed"
+        r'\b(mark|set)\s+.*\s+as\s+(done|complet(?:e|ed)|finish(?:ed)?)\b',
+        # "mark X done/complete/completed" (without "as")
+        r'\b(mark|set)\s+.*\s+(done|complet(?:e|ed)|finish(?:ed)?)\b',
+        # "X task done/complete/finished" (passive)
+        r'\btask\s+(done|complet(?:e|ed)|finish(?:ed)?)\b',
+        # "complete/finish X"
+        r'\b(complet(?:e|ed)|finish(?:ed)?)\s+.*\s+task\b',
+        # "done with X"
+        r'\bdone\s+with\b',
+        # "i already/finished/completed X" followed by mark/done/complete
+        r'\b(i\s+already|i\s+finished|i\s+completed|as\s+i\s+already)\b.*\b(mark|done|complet(?:e|ed))\b',
+        # Undo completion
+        r'\bundo\s+(completion|complet(?:e|ed))\b'
     ]
     if any(re.search(pattern, message_lower) for pattern in complete_patterns):
         return IntentClassification(
             operation_type=Intent.COMPLETE,
             confidence=0.92,
-            extracted_parameters=_extract_complete_params(message),
+            extracted_parameters=_extract_complete_params(message, context_text),
             classification_method=ClassificationMethod.RULE_BASED
         )
 
@@ -231,7 +253,7 @@ def _extract_list_params(message: str) -> Dict[str, Any]:
     return params
 
 
-def _extract_complete_params(message: str) -> Dict[str, Any]:
+def _extract_complete_params(message: str, context_text: str = "") -> Dict[str, Any]:
     """
     Extract parameters for COMPLETE intent.
 
@@ -239,6 +261,7 @@ def _extract_complete_params(message: str) -> Dict[str, Any]:
 
     Args:
         message: User message
+        context_text: Previous user messages for context extraction
 
     Returns:
         Dictionary with extracted parameters
@@ -253,17 +276,73 @@ def _extract_complete_params(message: str) -> Dict[str, Any]:
     else:
         params["task_id"] = None
 
-    # Extract task_title (text in quotes or after "mark/complete")
+    # Extract task_title (multiple strategies for natural language)
+    title = None
+
+    # Strategy 1: Text in quotes
     title_match = re.search(r"['\"]([^'\"]+)['\"]", message)
     if title_match:
-        params["task_title"] = title_match.group(1)
-    else:
-        # Try to extract title after "mark/complete"
-        title_match = re.search(r'(?:mark|complete|finish)\s+(.+?)\s+as', message_lower)
+        title = title_match.group(1)
+
+    # Strategy 2: "mark ... task done/complete" (extract text between mark and task)
+    if not title:
+        title_match = re.search(r'mark\s+(?:my\s+)?(.+?)\s+task\s+(?:done|complete|finished)', message_lower)
         if title_match:
-            params["task_title"] = title_match.group(1).strip()
-        else:
-            params["task_title"] = None
+            title = title_match.group(1).strip()
+
+    # Strategy 3: "mark ... done/complete" (without "task" keyword)
+    if not title:
+        title_match = re.search(r'mark\s+(?:my\s+)?(.+?)\s+(?:done|complete|finished)', message_lower)
+        if title_match:
+            title = title_match.group(1).strip()
+            # Remove "task" from title if present
+            title = re.sub(r'\btask\b', '', title).strip()
+
+    # Strategy 4: "mark ... as done/complete"
+    if not title:
+        title_match = re.search(r'mark\s+(?:my\s+)?(.+?)\s+as\s+(?:done|complete|finished)', message_lower)
+        if title_match:
+            title = title_match.group(1).strip()
+
+    # Strategy 5: Extract from context phrases like "i prepared for X mark..."
+    if not title:
+        # Look for patterns like "i prepared for X" or "i finished X"
+        context_match = re.search(r'(?:i\s+(?:prepared|finished|completed|did|studied)\s+(?:for\s+)?(?:my\s+)?(.+?))\s+(?:mark|done|complete)', message_lower)
+        if context_match:
+            title = context_match.group(1).strip()
+
+    # Strategy 6: Extract from conversation history context
+    # If user says "mark it done" or "mark that completed", look at previous messages
+    if not title and context_text:
+        context_lower = context_text.lower()
+        # Check if message has pronouns like "it", "that", "this task"
+        has_pronoun = re.search(r'\b(it|that|this(?:\s+task)?)\b', message_lower)
+        if has_pronoun:
+            # Look for task mentions in recent context: "i did X" or "i bought X" patterns
+            context_patterns = [
+                r'(?:i\s+(?:did|bought|finished|completed|prepared|studied)\s+(?:for\s+)?(?:my\s+)?(.+?))\s*$',
+                r'(?:i\s+(?:went|had)\s+(?:to\s+)?(.+?))\s*$',
+                r'(?:just\s+(?:did|finished|completed)\s+(.+?))\s*$'
+            ]
+            for pattern in context_patterns:
+                context_match = re.search(pattern, context_lower)
+                if context_match:
+                    title = context_match.group(1).strip()
+                    # Clean up common endings like "today", "yesterday"
+                    title = re.sub(r'\s+(today|yesterday|just now|earlier)$', '', title)
+                    break
+
+    # Clean up the title
+    if title:
+        # Remove possessive "my"
+        title = re.sub(r'^my\s+', '', title)
+        # Remove "the"
+        title = re.sub(r'^the\s+', '', title)
+        # Remove trailing "task"
+        title = re.sub(r'\s+task$', '', title)
+        params["task_title"] = title
+    else:
+        params["task_title"] = None
 
     # Extract completion status (default: true, unless "undo")
     if re.search(r'\bundo\b', message_lower):

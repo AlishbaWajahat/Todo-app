@@ -19,8 +19,12 @@ import logging
 
 from core.config import settings
 from core.database import create_db_and_tables
-from api.v1.endpoints import tasks, auth, users, agent
+from api.v1.endpoints import tasks, auth, users, agent, chatkit
 from middleware.auth import auth_middleware
+from fastapi.middleware.cors import CORSMiddleware
+
+
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -61,7 +65,29 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
         # Content Security Policy
-        response.headers["Content-Security-Policy"] = "default-src 'self'"
+        # Allow ChatKit CDN, local development, and necessary resources
+        if settings.environment == "production":
+            # Production: Restrictive CSP
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.platform.openai.com; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' https://alishba20-05-todp-app.hf.space; "
+                "frame-src https://cdn.platform.openai.com; "
+            )
+        else:
+            # Development: Allow localhost and ChatKit CDN
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.platform.openai.com; "
+                "style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: https: http:; "
+                "font-src 'self' data:; "
+                "connect-src 'self' http://localhost:* ws://localhost:* https://cdn.platform.openai.com; "
+                "frame-src 'self' https://cdn.platform.openai.com; "
+            )
 
         # Referrer Policy
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
@@ -150,13 +176,33 @@ app.add_middleware(
         "Content-Type",
         "Accept",
         "Origin",
-        "X-Requested-With"
+        "X-Requested-With",
+        "X-Conversation-Id",  # ChatKit conversation tracking
+        "X-Session-Id",  # ChatKit session management
+        "chatkit-frame-instance-id"  # ChatKit internal header (REQUIRED for preflight)
     ],  # Explicit headers only
+    expose_headers=["X-Conversation-Id"],  # Allow frontend to read these headers
     max_age=600,  # Cache preflight for 10 minutes
 )
 
 # Add security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
+
+
+# Debug middleware to log all requests
+@app.middleware("http")
+async def debug_logging_middleware(request: Request, call_next):
+    """Log all requests for debugging."""
+    if request.url.path == "/api/v1/chatkit" and request.method == "OPTIONS":
+        print("\n[DEBUG] RAW OPTIONS REQUEST:")
+        print(f"  Method: {request.method}")
+        print(f"  Path: {request.url.path}")
+        print(f"  Headers: {dict(request.headers)}")
+        print(f"  Client: {request.client}\n")
+    response = await call_next(request)
+    if request.url.path == "/api/v1/chatkit" and request.method == "OPTIONS":
+        print(f"  Response status: {response.status_code}\n")
+    return response
 
 
 # Register authentication middleware
@@ -177,6 +223,7 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(agent.router, prefix="/api/v1")
+app.include_router(chatkit.router, prefix="/api/v1")
 
 # Mount static files for uploaded avatars
 # Create uploads directory if it doesn't exist

@@ -48,6 +48,7 @@ def add_task(input_data: AddTaskInput) -> ToolResponse:
     Security:
         - Task is created with the provided user_id (ownership enforced)
     """
+    print(f"MCP add_task received for user ID: {input_data.user_id}, title: {input_data.title}")
     try:
         # Validate user_id
         if not input_data.user_id or len(input_data.user_id.strip()) == 0:

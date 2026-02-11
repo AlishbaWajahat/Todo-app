@@ -43,6 +43,7 @@ def complete_task(input_data: CompleteTaskInput) -> ToolResponse:
         - Returns TASK_NOT_FOUND if task doesn't exist or user doesn't own it
         - This prevents information leakage about task existence
     """
+    print(f"MCP complete_task received for user ID: {input_data.user_id}, task_id: {input_data.task_id}, completed: {input_data.completed}")
     try:
         # Validate user_id
         if not input_data.user_id or len(input_data.user_id.strip()) == 0:
