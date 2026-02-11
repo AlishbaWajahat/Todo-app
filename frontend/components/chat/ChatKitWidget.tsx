@@ -176,7 +176,7 @@ export default function ChatKitWidget() {
   const { control } = useChatKit({
     api: {
       url: `${API_BASE_URL}/api/v1/chatkit`,
-      domainKey: 'todo-app',
+      domainKey: process.env.NEXT_PUBLIC_OPENAI_DOMAIN_KEY || 'todo-app',
       fetch: customFetch,
     },
     startScreen: {
