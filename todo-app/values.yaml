@@ -1,0 +1,82 @@
+# ============================================================================
+# Todo App Helm Chart - Local Deployment Values
+# ============================================================================
+
+# -- Backend (FastAPI + SQLModel + Uvicorn)
+backend:
+  replicaCount: 1
+  image:
+    repository: todo-backend
+    tag: latest
+    pullPolicy: Never  # Use local images (no registry pull)
+  service:
+    type: NodePort
+    port: 8000
+    nodePort: 30800
+  env:
+    DATABASE_URL: ""
+    JWT_SECRET: ""
+    JWT_ALGORITHM: "HS256"
+    CORS_ORIGINS: '["http://localhost:30300"]'
+    ENVIRONMENT: "production"
+    GEMINI_API_KEY: ""
+    OPENAI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# -- Frontend (Next.js 16 + React 19)
+frontend:
+  replicaCount: 1
+  image:
+    repository: todo-frontend
+    tag: latest
+    pullPolicy: Never  # Use local images (no registry pull)
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30300
+  env:
+    NEXT_PUBLIC_API_URL: "http://localhost:30800"
+    BETTER_AUTH_SECRET: ""
+    BETTER_AUTH_URL: "http://localhost:30300"
+    JWT_SECRET: ""
+    JWT_ALGORITHM: "HS256"
+    JWT_EXPIRATION: "86400"
+    NEXT_PUBLIC_OPENAI_DOMAIN_KEY: ""
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+# -- Shared settings
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

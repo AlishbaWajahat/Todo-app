@@ -1,0 +1,17 @@
+============================================================
+  Todo App deployed successfully!
+============================================================
+
+Backend (FastAPI):
+  NodePort: http://localhost:{{ .Values.backend.service.nodePort }}
+  Health:   http://localhost:{{ .Values.backend.service.nodePort }}/health
+
+Frontend (Next.js):
+  NodePort: http://localhost:{{ .Values.frontend.service.nodePort }}
+
+To verify pods are running:
+  kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}"
+
+To view logs:
+  kubectl logs -l "app.kubernetes.io/component=backend"  -f
+  kubectl logs -l "app.kubernetes.io/component=frontend" -f
